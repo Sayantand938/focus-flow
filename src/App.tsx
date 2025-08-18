@@ -19,7 +19,7 @@ import { format } from "date-fns";
 
 import Settings from "@/features/Settings/Settings";
 import SideMenu from "@/components/layout/SideMenu";
-import { Auth } from "@/features/Auth/Auth";
+import  Auth from "@/features/Auth/Auth";
 import Dashboard from "@/features/Dashboard/Dashboard";
 import { Todo, DailyLog, StudiedDays } from "@/utils/types";
 import FocusSheet from "@/features/FocusSheet/FocusSheet";

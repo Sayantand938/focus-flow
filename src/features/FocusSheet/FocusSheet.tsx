@@ -1,16 +1,7 @@
-// src/components/FocusSheet.tsx
 import { StudiedDays } from "@/utils/types";
 import { SHIFTS, slotToHour } from "@/utils/utils";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "../../components/ui/card";
-import { Separator } from "../../components/ui/separator";
-import { Switch } from "../../components/ui/switch";
 import { format } from "date-fns";
-import { Badge } from "../../components/ui/badge";
+import ShiftCard from "./components/ShiftCard";
 
 type FocusSheetProps = {
   studiedDays: StudiedDays;
@@ -30,11 +21,14 @@ const formatHourSlot = (hour: number): string => {
   return `${start} - ${end}`;
 };
 
-function FocusSheet({ studiedDays, onToggleSession }: FocusSheetProps) {
+export default function FocusSheet({
+  studiedDays,
+  onToggleSession,
+}: FocusSheetProps) {
   const todayKey = format(new Date(), "yyyy-MM-dd");
   const todayData = studiedDays[todayKey];
   const todaysCompletedHours = new Set(
-    todayData?.completedSlots.map(slot => slotToHour(slot)).filter(h => h !== null) || []
+    todayData?.completedSlots.map(slotToHour).filter(h => h !== null) || []
   );
 
   return (
@@ -47,59 +41,14 @@ function FocusSheet({ studiedDays, onToggleSession }: FocusSheetProps) {
       </header>
 
       {SHIFTS.map((shift) => (
-        <Card key={shift.name}>
-          <CardHeader>
-            <CardTitle className="text-xl font-semibold">
-              {shift.name}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {Array.from(
-                { length: shift.endHour - shift.startHour },
-                (_, i) => {
-                  const hour = shift.startHour + i;
-                  const isChecked = todaysCompletedHours.has(hour);
-
-                  return (
-                    <div key={hour}>
-                      <div className="grid grid-cols-[1fr_auto_auto] md:grid-cols-3 items-center gap-2">
-                        <span className="font-mono text-sm sm:text-base whitespace-nowrap">
-                          {formatHourSlot(hour)}
-                        </span>
-
-                        <div className="flex justify-center">
-                          {isChecked ? (
-                            <Badge variant="logged">Logged</Badge>
-                          ) : (
-                            <Badge variant="pending">Pending</Badge>
-                          )}
-                        </div>
-
-                        <div className="flex justify-end">
-                          <Switch
-                            checked={isChecked}
-                            onCheckedChange={(checked) =>
-                              onToggleSession(hour, checked)
-                            }
-                            id={`session-${hour}`}
-                          />
-                        </div>
-                      </div>
-
-                      {i < shift.endHour - shift.startHour - 1 && (
-                        <Separator className="mt-4" />
-                      )}
-                    </div>
-                  );
-                }
-              )}
-            </div>
-          </CardContent>
-        </Card>
+        <ShiftCard
+          key={shift.name}
+          shift={shift}
+          todaysCompletedHours={todaysCompletedHours}
+          formatHourSlot={formatHourSlot}
+          onToggleSession={onToggleSession}
+        />
       ))}
     </div>
   );
 }
-
-export default FocusSheet;
