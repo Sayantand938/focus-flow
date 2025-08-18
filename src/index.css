@@ -133,3 +133,18 @@
     scrollbar-width: none;     /* Firefox */
   }
 }
+
+
+/* Hide the default browser "show password" icon */
+/* For Chrome, Edge, Safari */
+input[type="password"]::-webkit-reveal,
+input[type="password"]::-webkit-password-toggle-button {
+  display: none !important;
+  appearance: none !important;
+}
+
+/* For Internet Explorer */
+input[type="password"]::-ms-reveal {
+  display: none !important;
+  appearance: none !important;
+}

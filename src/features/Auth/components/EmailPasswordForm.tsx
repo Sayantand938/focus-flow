@@ -28,17 +28,15 @@ export default function EmailPasswordForm({ form, onSubmit, isLoading, mode }: E
             <FormItem>
               <FormLabel>Email</FormLabel>
               <div className="relative">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <FormControl>
-                  <>
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      type="email"
-                      placeholder="name@example.com"
-                      autoComplete="email"
-                      {...field}
-                      className="bg-input text-foreground border-border w-full p-2 rounded-md pl-10"
-                    />
-                  </>
+                  <Input
+                    type="email"
+                    placeholder="name@example.com"
+                    autoComplete="email"
+                    {...field}
+                    className="bg-input text-foreground border-border w-full p-2 rounded-md pl-10"
+                  />
                 </FormControl>
               </div>
               <FormMessage />

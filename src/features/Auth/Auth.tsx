@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react"; // Import useEffect
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -10,6 +10,7 @@ import {
   signInWithEmailAndPassword,
 } from "firebase/auth";
 import { FirebaseError } from "firebase/app";
+import { motion, AnimatePresence } from "framer-motion";
 
 import EmailPasswordForm from "./components/EmailPasswordForm";
 import ErrorAlert from "./components/ErrorAlert";
@@ -30,6 +31,19 @@ export default function Auth() {
     resolver: zodResolver(formSchema),
     defaultValues: { email: "", password: "" },
   });
+
+  // --- NEW: Effect to auto-clear the error message ---
+  useEffect(() => {
+    if (error) {
+      // Set a timer to clear the error after 5 seconds
+      const timer = setTimeout(() => {
+        setError(null);
+      }, 5000);
+
+      // Clean up the timer if the component unmounts or if the error changes
+      return () => clearTimeout(timer);
+    }
+  }, [error]); // This effect runs every time the 'error' state changes
 
   const handleAuthError = (err: unknown) => {
     if (err instanceof FirebaseError) {
@@ -69,41 +83,59 @@ export default function Auth() {
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-background text-foreground p-4">
-      <Card className="w-full max-w-md rounded-xl shadow-lg border border-border bg-card text-card-foreground">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold">
-            {mode === "signin" ? "Sign In" : "Create an Account"}
-          </CardTitle>
-        </CardHeader>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="w-full max-w-md"
+      >
+        <Card className="w-full rounded-xl shadow-lg border border-border bg-card text-card-foreground">
+          <CardHeader className="text-center">
+            <CardTitle className="text-2xl font-bold">
+              {mode === "signin" ? "Sign In" : "Create an Account"}
+            </CardTitle>
+          </CardHeader>
 
-        <CardContent className="space-y-4">
-          {error && <ErrorAlert message={error} />}
+          <CardContent className="space-y-4">
+            <AnimatePresence>
+              {error && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10, height: 0 }}
+                  animate={{ opacity: 1, y: 0, height: "auto" }}
+                  exit={{ opacity: 0, y: -10, height: 0 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <ErrorAlert message={error} />
+                </motion.div>
+              )}
+            </AnimatePresence>
 
-          <EmailPasswordForm
-            form={form}
-            onSubmit={handleEmailSubmit}
-            isLoading={isLoading}
-            mode={mode}
-          />
-        </CardContent>
+            <EmailPasswordForm
+              form={form}
+              onSubmit={handleEmailSubmit}
+              isLoading={isLoading}
+              mode={mode}
+            />
+          </CardContent>
 
-        <CardFooter className="flex justify-center text-sm">
-          <p className="text-muted-foreground">
-            {mode === "signin" ? "Don't have an account?" : "Already have an account?"}{" "}
-            <Button
-              variant="link"
-              onClick={() => {
-                setMode(mode === "signin" ? "signup" : "signin");
-                form.reset();
-                setError(null);
-              }}
-              className="p-0 font-semibold text-primary"
-            >
-              {mode === "signin" ? "Sign Up" : "Sign In"}
-            </Button>
-          </p>
-        </CardFooter>
-      </Card>
+          <CardFooter className="flex justify-center text-sm">
+            <p className="text-muted-foreground">
+              {mode === "signin" ? "Don't have an account?" : "Already have an account?"}{" "}
+              <Button
+                variant="link"
+                onClick={() => {
+                  setMode(mode === "signin" ? "signup" : "signin");
+                  form.reset();
+                  setError(null);
+                }}
+                className="p-0 font-semibold text-primary"
+              >
+                {mode === "signin" ? "Sign Up" : "Sign In"}
+              </Button>
+            </p>
+          </CardFooter>
+        </Card>
+      </motion.div>
     </div>
   );
 }
