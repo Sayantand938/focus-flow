@@ -67,7 +67,7 @@ function FocusSheet({ sessions, onToggleSession }: FocusSheetProps) {
         <Card key={shift.name}>
           <CardHeader>
             <CardTitle>{shift.name}</CardTitle>
-            <CardDescription>{`From ${formatHourDetailed(shift.startHour)} to ${formatHourDetailed(shift.endHour)}`}</CardDescription>
+            <CardDescription className="mb-2">{`From ${formatHourDetailed(shift.startHour)} to ${formatHourDetailed(shift.endHour)}`}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
