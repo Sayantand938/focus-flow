@@ -1,6 +1,6 @@
 // src/components/CustomHeatmap.tsx
 import React, { useMemo, useState } from 'react';
-import { Session } from '@/utils/types';
+import { StudiedDays } from '@/utils/types';
 import { getHeatmapData } from '@/utils/utils';
 import {
   Card,
@@ -20,7 +20,7 @@ import {
 import { useIsMobile } from '@/hooks/useIsMobile';
 
 interface CustomHeatmapProps {
-  sessions: Session[];
+  studiedDays: StudiedDays;
 }
 
 interface TooltipState {
@@ -33,34 +33,28 @@ interface TooltipState {
 const WEEK_DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-export const CustomHeatmap: React.FC<CustomHeatmapProps> = ({ sessions }) => {
+export const CustomHeatmap: React.FC<CustomHeatmapProps> = ({ studiedDays }) => {
   const [tooltip, setTooltip] = useState<TooltipState>({ visible: false, x: 0, y: 0, content: '' });
   const isMobile = useIsMobile();
 
   const { grid, monthLabels, dateRange } = useMemo(() => {
-    const heatmapData = getHeatmapData(sessions);
+    const heatmapData = getHeatmapData(studiedDays);
     const dataMap = new Map(heatmapData.map(d => [d.date, d.count]));
 
     const today = new Date();
     
-    // Calculate the end date (today) and start date
     const endDate = today;
     let startDate: Date;
     
     if (isMobile) {
-      // For mobile: 26 weeks = 182 days, go back 181 days to include today
       startDate = subDays(endDate, 181);
     } else {
-      // For desktop: Show exactly one year - from tomorrow of last year to today
       const lastYear = new Date(today);
       lastYear.setFullYear(today.getFullYear() - 1);
-      startDate = addDays(lastYear, 1); // Tomorrow of last year
+      startDate = addDays(lastYear, 1);
     }
     
-    // Find the start of the week for the grid (Sunday)
     const gridStartDate = startOfWeek(startDate, { weekStartsOn: 0 });
-    
-    // Calculate actual number of weeks needed for the grid
     const actualNumWeeks = differenceInCalendarWeeks(endDate, gridStartDate, { weekStartsOn: 0 }) + 1;
     
     const grid: ({ date: Date; studyTime: number }[])[] = [];
@@ -80,7 +74,6 @@ export const CustomHeatmap: React.FC<CustomHeatmapProps> = ({ sessions }) => {
       
       grid.push(week);
 
-      // Add month labels when we encounter a new month
       const firstDayOfWeek = week[0].date;
       if (firstDayOfWeek.getMonth() !== currentMonth) {
         currentMonth = firstDayOfWeek.getMonth();
@@ -96,7 +89,7 @@ export const CustomHeatmap: React.FC<CustomHeatmapProps> = ({ sessions }) => {
       monthLabels, 
       dateRange: { start: startDate, end: endDate }
     };
-  }, [sessions, isMobile]);
+  }, [studiedDays, isMobile]);
 
   const getColorClass = (minutes: number) => {
     if (minutes === 0) return "bg-muted/30 border-muted/50";
@@ -107,11 +100,7 @@ export const CustomHeatmap: React.FC<CustomHeatmapProps> = ({ sessions }) => {
   };
 
   const getTooltipText = (date: Date, minutes: number) => {
-    const formattedDate = date.toLocaleString('en-US', {
-      month: 'long',
-      day: 'numeric',
-      year: 'numeric'
-    });
+    const formattedDate = format(date, 'MMMM d, yyyy');
     const contribution = minutes > 0 ? `${Math.round(minutes)} minutes` : 'No contributions';
     return `${contribution} on ${formattedDate}`;
   };
@@ -144,7 +133,6 @@ export const CustomHeatmap: React.FC<CustomHeatmapProps> = ({ sessions }) => {
         </CardHeader>
         <CardContent className="flex flex-col flex-1">
           <div className="flex flex-1 items-center gap-3 overflow-x-auto pb-4">
-            {/* Day labels */}
             <div className="flex flex-col gap-1 text-xs text-muted-foreground pt-6 flex-shrink-0">
               {WEEK_DAYS.map((day, i) => (
                 <div
@@ -157,9 +145,7 @@ export const CustomHeatmap: React.FC<CustomHeatmapProps> = ({ sessions }) => {
               ))}
             </div>
 
-            {/* Heatmap */}
             <div className="relative min-w-0 flex-1">
-              {/* Month Labels */}
               <div className="flex absolute top-0 left-0 right-0">
                 {monthLabels.map(({ label, weekIndex }) => (
                   <div
@@ -172,7 +158,6 @@ export const CustomHeatmap: React.FC<CustomHeatmapProps> = ({ sessions }) => {
                 ))}
               </div>
 
-              {/* Grid */}
               <div className="flex gap-1 pt-6 h-full" style={{ width: '100%' }}>
                 {grid.map((week, weekIndex) => (
                   <div key={weekIndex} className="flex flex-col gap-1 flex-1">
@@ -196,7 +181,6 @@ export const CustomHeatmap: React.FC<CustomHeatmapProps> = ({ sessions }) => {
             </div>
           </div>
 
-          {/* Legend */}
           <div className="flex items-center justify-end mt-4 text-xs text-muted-foreground gap-2">
             <span>Less</span>
             <div className="flex items-center gap-1">
@@ -211,7 +195,6 @@ export const CustomHeatmap: React.FC<CustomHeatmapProps> = ({ sessions }) => {
         </CardContent>
       </Card>
 
-      {/* Tooltip */}
       {tooltip.visible && (
         <div
           className="fixed z-50 px-3 py-2 text-xs bg-popover text-popover-foreground border rounded-md shadow-lg pointer-events-none transform -translate-x-1/2 -translate-y-full"

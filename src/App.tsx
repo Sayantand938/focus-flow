@@ -1,5 +1,5 @@
 // D:/Coding/tauri-projects/focus-flow/src/App.tsx
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { auth, db } from "@/services/firebase";
 import { onAuthStateChanged, User, signOut } from "firebase/auth";
 import {
@@ -21,11 +21,11 @@ import Settings from "@/pages/Settings/Settings";
 import SideMenu from "@/components/SideMenu";
 import { Auth } from "@/pages/Auth/Auth";
 import Dashboard from "@/pages/Dashboard/Dashboard";
-import { Session, Todo } from "@/utils/types";
+import { Todo, DailyLog, StudiedDays } from "@/utils/types";
 import FocusSheet from "@/pages/FocusSheet/FocusSheet";
-import { cn, hourToSlot, slotToHour } from "@/utils/utils";
+import { cn, hourToSlot } from "@/utils/utils";
 import TodoList from "@/pages/Todo/TodoList";
-import { useTodos } from "@/hooks/useTodos"; // Import the new hook
+import { useTodos } from "@/hooks/useTodos";
 
 /**
  * Creates a user profile document in Firestore if one doesn't already exist.
@@ -51,34 +51,31 @@ const createUserProfileDocument = async (user: User) => {
 };
 
 /**
- * Transforms raw dailyLog documents from Firestore into Session[]
+ * Transforms the raw dailyLog data into the more robust StudiedDays object.
  */
-function transformLogsToSessions(dailyLogs: { id: string; completedSlots: number[] }[]): Session[] {
-  const allSessions: Session[] = [];
+function transformLogsToStudiedDays(dailyLogs: DailyLog[]): StudiedDays {
+  const studiedDays: StudiedDays = {};
+
   for (const log of dailyLogs) {
     const parts = log.id.split('-').map(Number);
     const date = new Date(parts[0], parts[1] - 1, parts[2]);
-
-    for (const slot of log.completedSlots) {
-      const hour = slotToHour(slot);
-      if (hour !== null) {
-        const startTime = new Date(date);
-        startTime.setHours(hour, 0, 0, 0);
-        allSessions.push({ startTime, duration: 1800 });
-      }
-    }
+    
+    studiedDays[log.id] = {
+      date: date,
+      completedSlots: log.completedSlots,
+      totalMinutes: log.completedSlots.length * 30, // Each slot is 30 minutes
+    };
   }
-  return allSessions;
+  return studiedDays;
 }
 
 function App() {
   const [user, setUser] = useState<User | null>(null);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
-  const [isLoadingSessions, setIsLoadingSessions] = useState(true);
+  const [isLoadingData, setIsLoadingData] = useState(true);
   const [activePage, setActivePage] = useState("focus-sheet");
-  const [sessions, setSessions] = useState<Session[]>([]);
+  const [dailyLogs, setDailyLogs] = useState<DailyLog[]>([]);
 
-  // Use the custom hook to manage all todo-related state and logic
   const {
     todos,
     setTodos,
@@ -91,27 +88,28 @@ function App() {
     handleMarkSelectedTasksDone,
   } = useTodos(user);
 
-  // Listen for Firebase auth state and fetch user-specific data
+  // Memoized transformation for all child components
+  const studiedDays = useMemo(() => transformLogsToStudiedDays(dailyLogs), [dailyLogs]);
+
   useEffect(() => {
-    const fetchAndSetSessions = async (uid: string) => {
-      setIsLoadingSessions(true);
+    const fetchAndSetDailyLogs = async (uid: string) => {
+      setIsLoadingData(true);
       try {
         const logsCollectionRef = collection(db, "users", uid, "dailyLogs");
         const q = query(logsCollectionRef);
         const querySnapshot = await getDocs(q);
 
-        const dailyLogs = querySnapshot.docs.map((doc) => ({
+        const fetchedLogs = querySnapshot.docs.map((doc) => ({
           id: doc.id,
           completedSlots: doc.data().completedSlots || [],
         }));
 
-        const transformedSessions = transformLogsToSessions(dailyLogs);
-        setSessions(transformedSessions);
+        setDailyLogs(fetchedLogs);
       } catch (error) {
-        console.error("Failed to load sessions from Firestore:", error);
-        setSessions([]);
+        console.error("Failed to load dailyLogs from Firestore:", error);
+        setDailyLogs([]);
       } finally {
-        setIsLoadingSessions(false);
+        setIsLoadingData(false);
       }
     };
 
@@ -119,12 +117,11 @@ function App() {
       if (currentUser) {
         await createUserProfileDocument(currentUser);
         setUser(currentUser);
-        await fetchAndSetSessions(currentUser.uid);
-        // Todo fetching is now handled by the useTodos hook
+        await fetchAndSetDailyLogs(currentUser.uid);
       } else {
         setUser(null);
-        setSessions([]);
-        setIsLoadingSessions(false);
+        setDailyLogs([]);
+        setIsLoadingData(false);
       }
       setIsLoadingAuth(false);
     });
@@ -143,66 +140,56 @@ function App() {
   const handleToggleSession = async (hour: number, isAdding: boolean) => {
     if (!user) return;
   
-    const day = new Date();
     const slot = hourToSlot(hour);
-    if (slot === null) {
-      console.error("Invalid hour provided for toggling session:", hour);
-      return;
-    }
+    if (slot === null) return;
   
-    const docId = format(day, "yyyy-MM-dd");
+    const docId = format(new Date(), "yyyy-MM-dd");
     const logDocRef = doc(db, "users", user.uid, "dailyLogs", docId);
   
-    if (isAdding) {
-      const sessionTime = new Date(day);
-      sessionTime.setHours(hour, 0, 0, 0);
-      const newSession: Session = { startTime: sessionTime, duration: 1800 };
+    setDailyLogs(currentLogs => {
+      const newLogs = [...currentLogs];
+      const todayLogIndex = newLogs.findIndex(log => log.id === docId);
+
+      if (isAdding) {
+        if (todayLogIndex > -1) {
+          if (!newLogs[todayLogIndex].completedSlots.includes(slot)) {
+            newLogs[todayLogIndex].completedSlots.push(slot);
+          }
+        } else {
+          newLogs.push({ id: docId, completedSlots: [slot] });
+        }
+      } else {
+        if (todayLogIndex > -1) {
+          newLogs[todayLogIndex].completedSlots = newLogs[todayLogIndex].completedSlots.filter((s: number) => s !== slot);
+        }
+      }
+      return newLogs;
+    });
   
-      setSessions((prevSessions) => [...prevSessions, newSession]);
-  
-      try {
+    try {
+      if (isAdding) {
         await setDoc(logDocRef, { completedSlots: arrayUnion(slot) }, { merge: true });
-      } catch (error) {
-        console.error("Failed to add session to Firestore:", error);
-        setSessions((prevSessions) =>
-          prevSessions.filter((s) => s.startTime.getTime() !== sessionTime.getTime())
-        );
-      }
-    } else {
-      const sessionTimeMs = new Date(day).setHours(hour, 0, 0, 0);
-      const originalSessions = [...sessions];
-      
-      setSessions((prevSessions) =>
-        prevSessions.filter((s) => s.startTime.getTime() !== sessionTimeMs)
-      );
-  
-      try {
+      } else {
         await updateDoc(logDocRef, { completedSlots: arrayRemove(slot) });
-      } catch (error) {
-        console.error("Failed to remove session from Firestore:", error);
-        setSessions(originalSessions);
       }
+    } catch (error) {
+      console.error("Failed to update Firestore:", error);
     }
   };
 
   const handleResetData = async (): Promise<void> => {
     if (!user) throw new Error('No user logged in');
     
-    const originalSessions = [...sessions];
-    const originalTodos = [...todos];
-    setActivePage('focus-sheet');
-    setSessions([]);
+    setDailyLogs([]);
     setTodos([]);
+    setActivePage('focus-sheet');
 
     try {
       const batch = writeBatch(db);
-
-      // Delete sessions (dailyLogs)
       const logsCollectionRef = collection(db, "users", user.uid, "dailyLogs");
       const logsSnapshot = await getDocs(logsCollectionRef);
       logsSnapshot.docs.forEach(doc => batch.delete(doc.ref));
 
-      // Delete todos
       const todosCollectionRef = collection(db, "users", user.uid, "todos");
       const todosSnapshot = await getDocs(todosCollectionRef);
       todosSnapshot.docs.forEach(doc => batch.delete(doc.ref));
@@ -210,95 +197,60 @@ function App() {
       await batch.commit();
     } catch (error) {
       console.error("Error resetting data:", error);
-      setSessions(originalSessions);
-      setTodos(originalTodos);
       throw error;
     }
   };
 
-  const handleImportData = async (data: { sessions: Session[], todos: Todo[] }): Promise<void> => {
+  const handleImportData = async (data: { dailyLogs: Record<string, number[]>, todos: Todo[] }): Promise<void> => {
     if (!user) throw new Error('No user logged in');
-
-    const originalSessions = [...sessions];
-    const originalTodos = [...todos];
-
-    // Optimistically update the UI
-    setSessions(data.sessions);
+  
+    const newDailyLogs = Object.entries(data.dailyLogs).map(([id, completedSlots]) => ({ id, completedSlots }));
+    setDailyLogs(newDailyLogs);
     setTodos(data.todos);
-
+  
     try {
-        const batch = writeBatch(db);
-
-        // 1. Delete all existing sessions (dailyLogs)
-        const logsCollectionRef = collection(db, "users", user.uid, "dailyLogs");
-        const logsSnapshot = await getDocs(logsCollectionRef);
-        logsSnapshot.docs.forEach(doc => batch.delete(doc.ref));
-
-        // 2. Delete all existing todos
-        const todosCollectionRef = collection(db, "users", user.uid, "todos");
-        const todosSnapshot = await getDocs(todosCollectionRef);
-        todosSnapshot.docs.forEach(doc => batch.delete(doc.ref));
-
-        // 3. Add imported todos to the batch
-        data.todos.forEach(todo => {
-            // Firestore will auto-generate an ID, so we create a new doc ref
-            const newDocRef = doc(collection(db, "users", user.uid, "todos"));
-            const { id, ...todoData } = todo;
-            batch.set(newDocRef, {
-                ...todoData,
-                createdAt: new Date(todo.createdAt) // Ensure createdAt is a Date object
-            });
-        });
-
-        // 4. Transform sessions into dailyLogs and add to the batch
-        const dailyLogs: { [key: string]: number[] } = {};
-        for (const session of data.sessions) {
-            const docId = format(session.startTime, "yyyy-MM-dd");
-            const slot = hourToSlot(new Date(session.startTime).getHours());
-            if (slot !== null) {
-                if (!dailyLogs[docId]) {
-                    dailyLogs[docId] = [];
-                }
-                // Ensure no duplicate slots per day
-                if (!dailyLogs[docId].includes(slot)) {
-                    dailyLogs[docId].push(slot);
-                }
-            }
-        }
-
-        for (const [docId, slots] of Object.entries(dailyLogs)) {
-            const logDocRef = doc(db, "users", user.uid, "dailyLogs", docId);
-            batch.set(logDocRef, { completedSlots: slots });
-        }
-
-        // 5. Commit the entire batch operation
-        await batch.commit();
-        console.log("✅ Data imported and synchronized with Firebase.");
-
+      const batch = writeBatch(db);
+  
+      const logsCollectionRef = collection(db, "users", user.uid, "dailyLogs");
+      const logsSnapshot = await getDocs(logsCollectionRef);
+      logsSnapshot.docs.forEach(doc => batch.delete(doc.ref));
+  
+      const todosCollectionRef = collection(db, "users", user.uid, "todos");
+      const todosSnapshot = await getDocs(todosCollectionRef);
+      todosSnapshot.docs.forEach(doc => batch.delete(doc.ref));
+  
+      data.todos.forEach(todo => {
+        const newDocRef = doc(collection(db, "users", user.uid, "todos"));
+        const { id, ...todoData } = todo;
+        batch.set(newDocRef, { ...todoData, createdAt: new Date(todo.createdAt) });
+      });
+  
+      for (const [docId, slots] of Object.entries(data.dailyLogs)) {
+        const logDocRef = doc(db, "users", user.uid, "dailyLogs", docId);
+        batch.set(logDocRef, { completedSlots: slots });
+      }
+  
+      await batch.commit();
     } catch (error) {
-        console.error("Error during data import:", error);
-        // Rollback UI on failure
-        setSessions(originalSessions);
-        setTodos(originalTodos);
-        throw error; // Re-throw to be handled by the Settings component
+      console.error("Error during data import:", error);
+      throw error;
     }
-};
+  };
 
   const renderContent = () => {
-    const isLoadingData = (isLoadingSessions && activePage !== 'todo-list') || (isLoadingTodos && activePage === 'todo-list');
+    const isAppLoading = (isLoadingData && activePage !== 'todo-list') || (isLoadingTodos && activePage === 'todo-list');
     
-    if (isLoadingData) {
-      const message = activePage === 'todo-list' ? 'Loading tasks...' : 'Loading sessions...';
-      return <div className="text-center text-muted-foreground"><p>{message}</p></div>;
+    if (isAppLoading) {
+      return <div className="text-center text-muted-foreground"><p>Loading data...</p></div>;
     }
 
     if (!user) return null;
 
     switch (activePage) {
       case "focus-sheet":
-        return <FocusSheet sessions={sessions} onToggleSession={handleToggleSession} />;
+        return <FocusSheet studiedDays={studiedDays} onToggleSession={handleToggleSession} />;
       case "dashboard":
-        return <Dashboard user={user} sessions={sessions} />;
+        return <Dashboard user={user} studiedDays={studiedDays} />;
       case "todo-list":
         return <TodoList 
           todos={todos}
@@ -313,20 +265,16 @@ function App() {
         return <Settings 
                   onResetData={handleResetData} 
                   onImportData={handleImportData}
-                  sessions={sessions}
+                  dailyLogs={dailyLogs}
                   todos={todos}
                 />;
       default:
-        return <FocusSheet sessions={sessions} onToggleSession={handleToggleSession} />;
+        return <FocusSheet studiedDays={studiedDays} onToggleSession={handleToggleSession} />;
     }
   };
   
   if (isLoadingAuth) {
-    return (
-      <div className="flex items-center justify-center h-screen bg-background">
-        <p className="text-foreground">Authenticating...</p>
-      </div>
-    );
+    return <div className="flex items-center justify-center h-screen bg-background"><p className="text-foreground">Authenticating...</p></div>;
   }
 
   if (!user) {
@@ -341,14 +289,7 @@ function App() {
         user={user}
         onSignOut={handleSignOut}
       />
-      <main
-        className={cn(
-          "flex-1 flex flex-col items-center overflow-y-auto min-h-screen",
-          "p-4 sm:p-6 lg:p-8",
-          "pt-20 md:pt-8",
-          "pb-12 sm:pb-16"
-        )}
-      >
+      <main className={cn("flex-1 flex flex-col items-center overflow-y-auto min-h-screen", "p-4 sm:p-6 lg:p-8", "pt-20 md:pt-8", "pb-12 sm:pb-16")}>
         {renderContent()}
       </main>
     </div>

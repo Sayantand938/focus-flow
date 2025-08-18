@@ -27,18 +27,18 @@ import {
 } from "@/components/ui/alert-dialog";
 import { save, open } from "@tauri-apps/plugin-dialog";
 import { writeTextFile, readTextFile } from "@tauri-apps/plugin-fs";
-import { Session, Todo } from "@/utils/types";
+import { Todo, DailyLog } from "@/utils/types";
 
 type Theme = "dark" | "light" | "system";
 
 type SettingsProps = {
   onResetData: () => Promise<void>;
-  onImportData: (data: { sessions: Session[]; todos: Todo[] }) => Promise<void>;
-  sessions: Session[];
+  onImportData: (data: { dailyLogs: Record<string, number[]>, todos: Todo[] }) => Promise<void>;
+  dailyLogs: DailyLog[];
   todos: Todo[];
 };
 
-function Settings({ onResetData, onImportData, sessions, todos }: SettingsProps) {
+function Settings({ onResetData, onImportData, dailyLogs, todos }: SettingsProps) {
   const { theme, setTheme } = useTheme();
   const [isResetting, setIsResetting] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
@@ -49,10 +49,9 @@ function Settings({ onResetData, onImportData, sessions, todos }: SettingsProps)
     setIsResetting(true);
     try {
       await onResetData();
-      setIsDialogOpen(false); // Close dialog on success
+      setIsDialogOpen(false);
     } catch (error) {
       console.error("❌ Reset failed in Settings component:", error);
-      // Optionally show an error message to the user
     } finally {
       setIsResetting(false);
     }
@@ -67,22 +66,25 @@ function Settings({ onResetData, onImportData, sessions, todos }: SettingsProps)
       });
 
       if (!filePath) {
-        console.log("Export cancelled by user.");
+        setIsExporting(false);
         return;
       }
 
+      // Convert the dailyLogs array into the desired key-value object format
+      const dailyLogsForExport: Record<string, number[]> = {};
+      for (const log of dailyLogs) {
+        dailyLogsForExport[log.id] = [...log.completedSlots].sort((a, b) => a - b);
+      }
+      
       const dataToExport = {
-        sessions,
+        dailyLogs: dailyLogsForExport,
         todos,
         exportedAt: new Date().toISOString(),
       };
 
       await writeTextFile(filePath, JSON.stringify(dataToExport, null, 2));
-      console.log("📤 Data exported successfully to", filePath);
-      // You could add a success notification here
     } catch (error) {
       console.error("❌ Export failed:", error);
-      // You could add an error notification here
     } finally {
       setIsExporting(false);
     }
@@ -97,29 +99,20 @@ function Settings({ onResetData, onImportData, sessions, todos }: SettingsProps)
       });
 
       if (!selectedPath) {
-        console.log("Import cancelled by user.");
+        setIsImporting(false);
         return;
       }
 
-      const content = await readTextFile(selectedPath); // Corrected line
+      const content = await readTextFile(selectedPath);
       const data = JSON.parse(content);
 
-      if (!data.sessions || !data.todos || !Array.isArray(data.sessions) || !Array.isArray(data.todos)) {
-        throw new Error("Invalid import file format. Missing 'sessions' or 'todos' array.");
+      if (!data.dailyLogs || !data.todos || typeof data.dailyLogs !== 'object' || !Array.isArray(data.todos)) {
+        throw new Error("Invalid import file format. Missing 'dailyLogs' object or 'todos' array.");
       }
-
-      // Important: Convert session startTime from string back to Date object
-      const parsedSessions = data.sessions.map((s: any) => ({
-        ...s,
-        startTime: new Date(s.startTime),
-      }));
       
-      await onImportData({ sessions: parsedSessions, todos: data.todos });
-      console.log("📥 Data imported successfully!");
-      // You could add a success notification here
+      await onImportData({ dailyLogs: data.dailyLogs, todos: data.todos });
     } catch (error) {
       console.error("❌ Import failed:", error);
-      // You could add an error notification here
     } finally {
       setIsImporting(false);
     }
@@ -180,7 +173,6 @@ function Settings({ onResetData, onImportData, sessions, todos }: SettingsProps)
         <Card>
           <CardContent className="pt-6">
             <div className="flex flex-col gap-6">
-              {/* Export Button and Description */}
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div className="flex-grow">
                   <h3 className="font-medium">Export Data</h3>
@@ -188,22 +180,11 @@ function Settings({ onResetData, onImportData, sessions, todos }: SettingsProps)
                     Download a copy of all your data for backup.
                   </p>
                 </div>
-                <Button
-                  onClick={handleExport}
-                  variant="outline"
-                  className="w-full sm:w-auto"
-                  disabled={isExporting}
-                >
-                  {isExporting ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <Download className="mr-2 h-4 w-4" />
-                  )}
+                <Button onClick={handleExport} variant="outline" className="w-full sm:w-auto" disabled={isExporting}>
+                  {isExporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
                   {isExporting ? "Exporting..." : "Export Data"}
                 </Button>
               </div>
-
-              {/* Import Button and Description */}
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div className="flex-grow">
                   <h3 className="font-medium">Import Data</h3>
@@ -211,17 +192,8 @@ function Settings({ onResetData, onImportData, sessions, todos }: SettingsProps)
                     Restore data from a backup file. This will replace all current data.
                   </p>
                 </div>
-                <Button
-                  onClick={handleImport}
-                  variant="outline"
-                  className="w-full sm:w-auto"
-                  disabled={isImporting}
-                >
-                  {isImporting ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <Upload className="mr-2 h-4 w-4" />
-                  )}
+                <Button onClick={handleImport} variant="outline" className="w-full sm:w-auto" disabled={isImporting}>
+                  {isImporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
                   {isImporting ? "Importing..." : "Import Data"}
                 </Button>
               </div>
@@ -247,11 +219,7 @@ function Settings({ onResetData, onImportData, sessions, todos }: SettingsProps)
               </div>
               <AlertDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <AlertDialogTrigger asChild>
-                  <Button
-                    variant="destructive"
-                    className="w-full sm:w-auto"
-                    disabled={isResetting}
-                  >
+                  <Button variant="destructive" className="w-full sm:w-auto" disabled={isResetting}>
                     {isResetting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     {isResetting ? "Resetting..." : "Reset All Data"}
                   </Button>
@@ -261,18 +229,12 @@ function Settings({ onResetData, onImportData, sessions, todos }: SettingsProps)
                     <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                     <AlertDialogDescription>
                       This action cannot be undone. This will permanently delete all of your
-                      data from the server including all tracked sessions and statistics.
+                      data from the server.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
-                    <AlertDialogCancel disabled={isResetting}>
-                      Cancel
-                    </AlertDialogCancel>
-                    <AlertDialogAction
-                      onClick={handleResetConfirm}
-                      disabled={isResetting}
-                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                    >
+                    <AlertDialogCancel disabled={isResetting}>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleResetConfirm} disabled={isResetting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
                       {isResetting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                       {isResetting ? "Deleting..." : "Yes, delete everything"}
                     </AlertDialogAction>

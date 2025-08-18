@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Session } from "@/utils/types";
+import { StudiedDays } from "@/utils/types";
 import {
   Card,
   CardContent,
@@ -25,7 +25,7 @@ import {
   calculateStreaksAndGoals,
   calculateOverallStats,
   SHIFTS,
-  SHIFT_GOAL_SECONDS  
+  SHIFT_GOAL_MINUTES
 } from "@/utils/utils";
 import {
   Flame,
@@ -41,16 +41,16 @@ import {
 } from "lucide-react";
 import { CustomHeatmap } from "../../components/CustomHeatmap";
 import { Separator } from "../../components/ui/separator";
-import { useIsMobile } from "@/hooks/useIsMobile"; // Import the hook
+import { useIsMobile } from "@/hooks/useIsMobile";
+import { format, subDays } from "date-fns";
 
 interface DashboardProps {
   user: {
     displayName: string | null;
   };
-  sessions: Session[];
+  studiedDays: StudiedDays;
 }
 
-// A lean component for displaying individual stats inside cards.
 const StatItem = ({
   title,
   value,
@@ -74,72 +74,54 @@ const StatItem = ({
   </div>
 );
 
-function Dashboard({ user, sessions }: DashboardProps) {
+function Dashboard({ user, studiedDays }: DashboardProps) {
   const isMobile = useIsMobile();
-  const SHIFT_GOAL_MINUTES = SHIFT_GOAL_SECONDS / 60;
 
   const todayShiftStats = useMemo(
-    () => calculateShiftStats(sessions, new Date()),
-    [sessions]
+    () => calculateShiftStats(studiedDays, new Date()),
+    [studiedDays]
   );
   const past7DaysProgress = useMemo(
-    () => getPast7DaysProgress(sessions),
-    [sessions]
+    () => getPast7DaysProgress(studiedDays),
+    [studiedDays]
   );
   const streaksAndGoals = useMemo(
-    () => calculateStreaksAndGoals(sessions),
-    [sessions]
+    () => calculateStreaksAndGoals(studiedDays),
+    [studiedDays]
   );
   const overallStats = useMemo(
-    () => calculateOverallStats(sessions),
-    [sessions]
+    () => calculateOverallStats(studiedDays),
+    [studiedDays]
   );
 
-  // --- Calculate Goal Completion Rate ---
   const goalCompletionRate =
     overallStats.totalDays > 0
       ? (streaksAndGoals.perfectDays / overallStats.totalDays) * 100
       : 0;
 
-  // --- Past 30 days progress for line chart ---
   const past30DaysProgress = useMemo(() => {
-    const today = new Date();
     const data = [];
-
+    const today = new Date();
     for (let i = 29; i >= 0; i--) {
-      const date = new Date(
-        today.getFullYear(),
-        today.getMonth(),
-        today.getDate() - i
-      );
+      const date = subDays(today, i);
+      const dateKey = format(date, "yyyy-MM-dd");
+      const dayData = studiedDays[dateKey];
       
-      // Calculate total minutes for this day across all shifts
-      const shiftStats = calculateShiftStats(sessions, date);
-      const totalSeconds = shiftStats.reduce((sum, seconds) => sum + seconds, 0);
-      const totalMinutes = Math.round(totalSeconds / 60);
-
-      // Format date for display
-      const dateStr = date.toLocaleDateString('en-US', { 
-        month: 'short', 
-        day: 'numeric' 
-      });
-
       data.push({
-        date: dateStr,
-        minutes: totalMinutes,
-        fullDate: date.toISOString().split('T')[0], // For tooltip
+        date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        minutes: dayData?.totalMinutes || 0,
+        fullDate: dateKey,
       });
     }
-
     return data;
-  }, [sessions]);
+  }, [studiedDays]);
 
-  if (sessions.length === 0) {
+  if (Object.keys(studiedDays).length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground p-4">
         <p className="text-lg font-medium">No Data Yet!</p>
         <p className="text-sm sm:text-base">
-          Complete a Pomodoro session to start seeing your stats.
+          Complete a study session to start seeing your stats.
         </p>
       </div>
     );
@@ -159,14 +141,12 @@ function Dashboard({ user, sessions }: DashboardProps) {
         </p>
       </header>
 
-      {/* --- ROW 1: Today's Shift Report --- */}
       <section>
         <h2 className="text-xl font-semibold mb-4">Today&apos;s Shift Report</h2>
         <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
           {SHIFTS.map((shift, index) => {
-            const durationInSeconds = todayShiftStats[index];
-            const durationInMinutes = durationInSeconds / 60;
-            const progress = (durationInSeconds / SHIFT_GOAL_SECONDS) * 100;
+            const durationInMinutes = todayShiftStats[index];
+            const progress = (durationInMinutes / SHIFT_GOAL_MINUTES) * 100;
             return (
               <Card key={shift.name}>
                 <CardHeader>
@@ -188,7 +168,6 @@ function Dashboard({ user, sessions }: DashboardProps) {
         </div>
       </section>
 
-      {/* --- ROW 2: Stats Cards --- */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <Card className="flex flex-col">
           <CardHeader className="pb-4">
@@ -198,29 +177,13 @@ function Dashboard({ user, sessions }: DashboardProps) {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <StatItem
-              title="Current Streak"
-              value={`${streaksAndGoals.currentStreak} days`}
-              icon={Flame}
-            />
+            <StatItem title="Current Streak" value={`${streaksAndGoals.currentStreak} days`} icon={Flame} />
             <Separator />
-            <StatItem
-              title="Longest Streak"
-              value={`${streaksAndGoals.longestStreak} days`}
-              icon={Award}
-            />
+            <StatItem title="Longest Streak" value={`${streaksAndGoals.longestStreak} days`} icon={Award} />
             <Separator />
-            <StatItem
-              title="Perfect Days"
-              value={String(streaksAndGoals.perfectDays)}
-              icon={Star}
-            />
+            <StatItem title="Perfect Days" value={String(streaksAndGoals.perfectDays)} icon={Star} />
             <Separator />
-            <StatItem
-              title="Goal Completion"
-              value={`${goalCompletionRate.toFixed(1)}%`}
-              icon={Target}
-            />
+            <StatItem title="Goal Completion" value={`${goalCompletionRate.toFixed(1)}%`} icon={Target} />
           </CardContent>
         </Card>
 
@@ -232,34 +195,17 @@ function Dashboard({ user, sessions }: DashboardProps) {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <StatItem
-              title="Total Studied Time"
-              value={`${overallStats.totalMinutes.toFixed(2)} mins`}
-              icon={Clock}
-            />
+            <StatItem title="Total Studied Time" value={`${overallStats.totalMinutes.toFixed(2)} mins`} icon={Clock} />
             <Separator />
-            <StatItem
-              title="Total Tracked Days"
-              value={String(overallStats.totalDays)}
-              icon={Calendar}
-            />
+            <StatItem title="Total Tracked Days" value={String(overallStats.totalDays)} icon={Calendar} />
             <Separator />
-            <StatItem
-              title="Avg. Daily Study"
-              value={`${overallStats.avgDailyMinutes.toFixed(2)} mins`}
-              icon={BarChart2}
-            />
+            <StatItem title="Avg. Daily Study" value={`${overallStats.avgDailyMinutes.toFixed(2)} mins`} icon={BarChart2} />
             <Separator />
-            <StatItem
-              title="Avg. per Shift"
-              value={`${overallStats.avgShiftMinutes.toFixed(2)} mins`}
-              icon={ClipboardList}
-            />
+            <StatItem title="Avg. per Shift" value={`${overallStats.avgShiftMinutes.toFixed(2)} mins`} icon={ClipboardList} />
           </CardContent>
         </Card>
       </div>
 
-      {/* --- ROW 3: Chart and 30-day trend line chart --- */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <Card className="flex flex-col">
           <CardHeader className="pb-4">
@@ -273,27 +219,15 @@ function Dashboard({ user, sessions }: DashboardProps) {
           </CardHeader>
           <CardContent className="flex-1">
             <ResponsiveContainer width="100%" height="100%" minHeight={300}>
-              <BarChart
-                data={past7DaysProgress}
-                margin={{ top: 5, right: 20, left: -10, bottom: 5 }}
-              >
+              <BarChart data={past7DaysProgress} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={chartTickStyle} />
                 <YAxis axisLine={false} tickLine={false} tick={chartTickStyle} />
                 <Tooltip
                   cursor={{ fill: "var(--accent)" }}
-                  contentStyle={{
-                    backgroundColor: "var(--card)",
-                    border: "1px solid var(--border)",
-                    color: "var(--foreground)"
-                  }}
+                  contentStyle={{ backgroundColor: "var(--card)", border: "1px solid var(--border)", color: "var(--foreground)" }}
                 />
-                <Bar
-                  dataKey="minutes"
-                  name="Minutes Studied"
-                  fill="var(--foreground)"
-                  radius={[4, 4, 0, 0]}
-                />
+                <Bar dataKey="minutes" name="Minutes Studied" fill="var(--foreground)" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -311,10 +245,7 @@ function Dashboard({ user, sessions }: DashboardProps) {
           </CardHeader>
           <CardContent className="flex-1">
             <ResponsiveContainer width="100%" height="100%" minHeight={300}>
-              <LineChart
-                data={past30DaysProgress}
-                margin={{ top: 5, right: 20, left: -10, bottom: 5 }}
-              >
+              <LineChart data={past30DaysProgress} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
                 <XAxis 
                   dataKey="date" 
@@ -325,18 +256,9 @@ function Dashboard({ user, sessions }: DashboardProps) {
                 />
                 <YAxis axisLine={false} tickLine={false} tick={chartTickStyle} />
                 <Tooltip
-                  labelFormatter={(value, payload) => {
-                    if (payload && payload.length > 0) {
-                      return `Date: ${payload[0].payload.fullDate}`;
-                    }
-                    return `Date: ${value}`;
-                  }}
+                  labelFormatter={(_, payload) => `Date: ${payload?.[0]?.payload.fullDate || ''}`}
                   formatter={(value: number) => [`${value} mins`, 'Study Time']}
-                  contentStyle={{
-                    backgroundColor: "var(--card)",
-                    border: "1px solid var(--border)",
-                    color: "var(--foreground)"
-                  }}
+                  contentStyle={{ backgroundColor: "var(--card)", border: "1px solid var(--border)", color: "var(--foreground)" }}
                 />
                 <Line
                   type="monotone"
@@ -352,9 +274,8 @@ function Dashboard({ user, sessions }: DashboardProps) {
         </Card>
       </div>
 
-      {/* --- ROW 4: Full-width heatmap --- */}
       <div>
-        <CustomHeatmap sessions={sessions} />
+        <CustomHeatmap studiedDays={studiedDays} />
       </div>
     </div>
   );
