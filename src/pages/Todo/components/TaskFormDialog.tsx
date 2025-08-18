@@ -25,7 +25,6 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 
 import { priorities, statuses } from "./columns";
@@ -88,25 +87,25 @@ export function TaskFormDialog({
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[560px] p-0 overflow-hidden">
-        {/* Header */}
+        {/* Header without badges */}
         <DialogHeader className="px-6 py-4 border-b">
-          <div className="flex items-start sm:items-center gap-3">
-            <div className="rounded-md p-2 bg-muted">
-              <ClipboardList className="h-5 w-5 text-muted-foreground" />
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="rounded-md p-2 bg-muted">
+                <ClipboardList className="h-5 w-5 text-muted-foreground" />
+              </div>
+              <div>
+                <DialogTitle className="text-lg font-semibold">
+                  {isEditing ? "Edit task" : "Create task"}
+                </DialogTitle>
+                <DialogDescription>
+                  {isEditing
+                    ? "Update the task details below."
+                    : "Enter details to create a new task."}
+                </DialogDescription>
+              </div>
             </div>
-            <div className="flex-1">
-              <DialogTitle className="text-lg font-semibold">
-                {isEditing ? "Edit task" : "Create task"}
-              </DialogTitle>
-              <DialogDescription>
-                {isEditing
-                  ? "Update the task details below."
-                  : "Enter details to create a new task."}
-              </DialogDescription>
-            </div>
-            <Badge variant={isEditing ? "secondary" : "outline"}>
-              {isEditing ? "Editing" : "New"}
-            </Badge>
+            {/* The Badge section has been removed */}
           </div>
         </DialogHeader>
 
@@ -184,7 +183,8 @@ export function TaskFormDialog({
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Status</FormLabel>
-                          <div className="flex gap-2 flex-wrap">
+                          {/* Updated flexbox to prevent wrapping */}
+                          <div className="flex gap-2">
                             {statuses.map((s) => (
                               <Button
                                 key={s.value}
@@ -192,7 +192,7 @@ export function TaskFormDialog({
                                 variant={
                                   field.value === s.value ? "default" : "outline"
                                 }
-                                className="flex-1 sm:flex-none flex items-center gap-2"
+                                className="flex-1 flex items-center gap-2"
                                 onClick={() => field.onChange(s.value)}
                               >
                                 {s.icon && <s.icon className="h-4 w-4" />}

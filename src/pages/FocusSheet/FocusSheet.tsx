@@ -73,10 +73,9 @@ function FocusSheet({ sessions, onToggleSession }: FocusSheetProps) {
 
                   return (
                     <div key={hour}>
-                      {/* ✅ Responsive grid:
-                           - Mobile → time gets 2x space
-                           - Desktop → equal 3 columns */}
-                      <div className="grid grid-cols-[2fr_1fr_1fr] md:grid-cols-3 items-center gap-2">
+                      {/* ✅ Mobile: flexible columns (time expands)
+                          ✅ Desktop: equal 3 columns */}
+                      <div className="grid grid-cols-[1fr_auto_auto] md:grid-cols-3 items-center gap-2">
                         {/* Left: Time */}
                         <span className="font-mono text-sm sm:text-base whitespace-nowrap">
                           {formatHourSlot(hour)}
