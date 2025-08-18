@@ -19,7 +19,7 @@ import { format } from "date-fns";
 
 import Settings from "@/features/Settings/Settings";
 import SideMenu from "@/components/layout/SideMenu";
-import  Auth from "@/features/Auth/Auth";
+import Auth from "@/features/Auth/Auth";
 import Dashboard from "@/features/Dashboard/Dashboard";
 import { Todo, DailyLog, StudiedDays } from "@/utils/types";
 import FocusSheet from "@/features/FocusSheet/FocusSheet";
@@ -296,7 +296,7 @@ function App() {
         user={user}
         onSignOut={handleSignOut}
       />
-      <main className={cn("flex-1 flex flex-col items-center overflow-y-auto min-h-screen", "p-4 sm:p-6 lg:p-8", "pt-20 md:pt-8", "pb-12 sm:pb-16")}>
+      <main className={cn("flex-1 flex flex-col items-center overflow-y-auto min-h-screen", "p-4 sm:p-6 lg:p-8", "pt-28 md:pt-8", "pb-12 sm:pb-16")}>
         {renderContent()}
       </main>
     </div>

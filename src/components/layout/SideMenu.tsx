@@ -41,7 +41,7 @@ function SideMenu({ activePage, setActivePage, user, onSignOut }: SideMenuProps)
   return (
     <>
       {/* Mobile Header */}
-      <header className="md:hidden fixed top-0 left-0 right-0 z-30 flex h-16 items-center gap-4 border-b border-border bg-background/90 px-4 backdrop-blur-sm">
+      <header className="md:hidden fixed top-0 left-0 right-0 z-30 flex items-center gap-4 border-b border-border bg-background/90 px-4 backdrop-blur-sm pt-12 pb-2">
         <button
           onClick={() => setIsMobileMenuOpen(true)}
           className="p-2 -ml-2"
