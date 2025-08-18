@@ -13,12 +13,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { statuses, priorities } from "./columns";
+import { cn } from "@/utils/utils";
 
 interface DataTableToolbarProps<TData> {
   table: Table<TData>;
   onAddTask: () => void;
   onDeleteSelected: (ids: string[]) => void;
   onMarkSelectedDone: (ids: string[]) => void;
+  isMobile: boolean;
 }
 
 export function DataTableToolbar<TData>({
@@ -26,6 +28,7 @@ export function DataTableToolbar<TData>({
   onAddTask,
   onDeleteSelected,
   onMarkSelectedDone,
+  isMobile,
 }: DataTableToolbarProps<TData>) {
   const selectedRows = table.getFilteredSelectedRowModel().rows;
   const hasSelection = selectedRows.length > 0;
@@ -36,7 +39,6 @@ export function DataTableToolbar<TData>({
     exit: { opacity: 0, x: -10 },
   };
 
-  // Extract IDs from selected rows
   const selectedIds = selectedRows.map((row: any) => row.original.id);
 
   const handleMarkDone = () => {
@@ -50,21 +52,21 @@ export function DataTableToolbar<TData>({
   };
 
   return (
-    <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-      <div className="flex w-full flex-1 items-center gap-2">
+    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex w-full flex-1 items-center gap-2 overflow-x-auto pb-1 sm:pb-0">
         <Input
           placeholder="Filter tasks..."
           value={(table.getColumn("description")?.getFilterValue() as string) ?? ""}
           onChange={(event) =>
             table.getColumn("description")?.setFilterValue(event.target.value)
           }
-          className="h-9 w-full sm:w-[250px]"
+          className="h-9 w-full sm:w-[250px] flex-shrink-0"
         />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" className="h-9">
-              <Filter className="mr-2 h-4 w-4" />
-              Status
+            <Button variant="outline" size={isMobile ? "icon" : "sm"} className="h-9 flex-shrink-0">
+              <Filter className={cn("h-4 w-4", !isMobile && "mr-2")} />
+              {!isMobile && "Status"}
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start">
@@ -95,9 +97,9 @@ export function DataTableToolbar<TData>({
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" className="h-9">
-              <Filter className="mr-2 h-4 w-4" />
-              Priority
+            <Button variant="outline" size={isMobile ? "icon" : "sm"} className="h-9 flex-shrink-0">
+              <Filter className={cn("h-4 w-4", !isMobile && "mr-2")} />
+              {!isMobile && "Priority"}
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start">
@@ -126,7 +128,7 @@ export function DataTableToolbar<TData>({
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-      <div className="flex w-full sm:w-auto items-center gap-2">
+      <div className="flex w-full sm:w-auto items-center gap-2 flex-shrink-0">
         <AnimatePresence mode="wait">
           {hasSelection ? (
             <motion.div
@@ -167,11 +169,11 @@ export function DataTableToolbar<TData>({
               <Button
                 onClick={onAddTask}
                 variant="default"
-                size="sm"
+                size={isMobile ? "icon" : "sm"}
                 className="h-9 w-full sm:w-auto"
               >
-                <PlusCircle className="mr-2 h-4 w-4" />
-                Add Task
+                <PlusCircle className={cn("h-4 w-4", !isMobile && "mr-2")} />
+                {!isMobile && "Add Task"}
               </Button>
             </motion.div>
           )}

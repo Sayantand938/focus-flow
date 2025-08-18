@@ -13,9 +13,6 @@ import {
   updateDoc,
   arrayRemove,
   serverTimestamp,
-  addDoc,
-  deleteDoc,
-  Timestamp,
 } from "firebase/firestore";
 import { format } from "date-fns";
 
@@ -23,10 +20,11 @@ import Settings from "@/pages/Settings/Settings";
 import SideMenu from "@/components/SideMenu";
 import { Auth } from "@/pages/Auth/Auth";
 import Dashboard from "@/pages/Dashboard/Dashboard";
-import { Session, Todo, TodoStatus } from "@/utils/types";
+import { Session } from "@/utils/types";
 import FocusSheet from "@/pages/FocusSheet/FocusSheet";
 import { cn, hourToSlot, slotToHour } from "@/utils/utils";
 import TodoList from "@/pages/Todo/TodoList";
+import { useTodos } from "@/hooks/useTodos"; // Import the new hook
 
 /**
  * Creates a user profile document in Firestore if one doesn't already exist.
@@ -78,10 +76,20 @@ function App() {
   const [isLoadingSessions, setIsLoadingSessions] = useState(true);
   const [activePage, setActivePage] = useState("focus-sheet");
   const [sessions, setSessions] = useState<Session[]>([]);
-  const [todos, setTodos] = useState<Todo[]>([]);
-  const [isLoadingTodos, setIsLoadingTodos] = useState(true);
 
-  // Listen for Firebase auth state and fetch data accordingly
+  // Use the custom hook to manage all todo-related state and logic
+  const {
+    todos,
+    isLoadingTodos,
+    handleAddTask,
+    handleUpdateTask,
+    handleDeleteTask,
+    handleSetTaskStatus,
+    handleDeleteSelectedTasks,
+    handleMarkSelectedTasksDone,
+  } = useTodos(user);
+
+  // Listen for Firebase auth state and fetch user-specific data
   useEffect(() => {
     const fetchAndSetSessions = async (uid: string) => {
       setIsLoadingSessions(true);
@@ -105,51 +113,22 @@ function App() {
       }
     };
 
-    const fetchAndSetTodos = async (uid: string) => {
-      setIsLoadingTodos(true);
-      try {
-        const todosCollectionRef = collection(db, "users", uid, "todos");
-        const q = query(todosCollectionRef);
-        const querySnapshot = await getDocs(q);
-        const fetchedTodos = querySnapshot.docs.map(doc => {
-            const data = doc.data();
-            return {
-                id: doc.id,
-                description: data.description,
-                tag: data.tag,
-                priority: data.priority,
-                status: data.status,
-                createdAt: (data.createdAt as Timestamp).toDate().toISOString(),
-            } as Todo;
-        });
-        setTodos(fetchedTodos);
-      } catch (error) {
-          console.error("Failed to load todos from Firestore:", error);
-          setTodos([]);
-      } finally {
-          setIsLoadingTodos(false);
-      }
-    };
-
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (currentUser) {
         await createUserProfileDocument(currentUser);
         setUser(currentUser);
         await fetchAndSetSessions(currentUser.uid);
-        await fetchAndSetTodos(currentUser.uid);
+        // Todo fetching is now handled by the useTodos hook
       } else {
         setUser(null);
         setSessions([]);
-        setTodos([]);
         setIsLoadingSessions(false);
-        setIsLoadingTodos(false);
       }
       setIsLoadingAuth(false);
     });
 
     return () => unsubscribe();
   }, []);
-
 
   const handleSignOut = async () => {
     try {
@@ -227,112 +206,14 @@ function App() {
     }
   };
 
-  // --- TODO CRUD Handlers with Optimistic UI ---
-
-  const handleAddTask = async (values: Omit<Todo, 'id' | 'createdAt'>) => {
-    if (!user) return;
-    
-    const tempId = `temp-${Date.now()}`;
-    const newTask: Todo = {
-        id: tempId,
-        ...values,
-        createdAt: new Date().toISOString(),
-    };
-    
-    setTodos(prev => [...prev, newTask]);
-
-    try {
-        const { id, ...taskData } = newTask;
-        const docRef = await addDoc(collection(db, "users", user.uid, "todos"), {
-            ...taskData,
-            createdAt: new Date(taskData.createdAt),
-        });
-        setTodos(prev => prev.map(t => (t.id === tempId ? { ...t, id: docRef.id } : t)));
-    } catch (error) {
-        console.error("Failed to add task to Firestore:", error);
-        setTodos(prev => prev.filter(t => t.id !== tempId));
-    }
-  };
-
-  const handleUpdateTask = async (updatedTask: Todo) => {
-      if (!user) return;
-
-      const originalTodos = [...todos];
-      setTodos(prev => prev.map(t => t.id === updatedTask.id ? updatedTask : t));
-
-      try {
-          const { id, createdAt, ...taskDataForUpdate } = updatedTask;
-          const docRef = doc(db, "users", user.uid, "todos", id);
-          await updateDoc(docRef, taskDataForUpdate);
-      } catch (error) {
-          console.error("Failed to update task in Firestore:", error);
-          setTodos(originalTodos);
-      }
-  };
-
-  const handleDeleteTask = async (id: string) => {
-      if (!user) return;
-      
-      const originalTodos = [...todos];
-      setTodos(prev => prev.filter(t => t.id !== id));
-
-      try {
-          await deleteDoc(doc(db, "users", user.uid, "todos", id));
-      } catch (error) {
-          console.error("Failed to delete task from Firestore:", error);
-          setTodos(originalTodos);
-      }
-  };
-
-  const handleSetTaskStatus = (id: string, status: TodoStatus) => {
-      const task = todos.find(t => t.id === id);
-      if (task) {
-        handleUpdateTask({ ...task, status });
-      }
-  };
-
-  const handleDeleteSelectedTasks = async (ids: string[]) => {
-      if (!user) return;
-      
-      const originalTodos = [...todos];
-      setTodos(prev => prev.filter(t => !ids.includes(t.id)));
-
-      try {
-          const batch = writeBatch(db);
-          ids.forEach(id => {
-              const docRef = doc(db, "users", user.uid, "todos", id);
-              batch.delete(docRef);
-          });
-          await batch.commit();
-      } catch (error) {
-          console.error("Failed to delete selected tasks from Firestore:", error);
-          setTodos(originalTodos);
-      }
-  };
-
-  const handleMarkSelectedTasksDone = async (ids: string[]) => {
-      if (!user) return;
-
-      const originalTodos = [...todos];
-      setTodos(prev => prev.map(t => ids.includes(t.id) ? { ...t, status: 'done' } : t));
-
-      try {
-          const batch = writeBatch(db);
-          ids.forEach(id => {
-              const docRef = doc(db, "users", user.uid, "todos", id);
-              batch.update(docRef, { status: 'done' });
-          });
-          await batch.commit();
-      } catch (error) {
-          console.error("Failed to mark selected tasks as done in Firestore:", error);
-          setTodos(originalTodos);
-      }
-  };
-
   const renderContent = () => {
-    if (isLoadingSessions && activePage !== 'todo-list') {
-      return <div className="text-center text-muted-foreground"><p>Loading sessions...</p></div>;
+    const isLoadingData = (isLoadingSessions && activePage !== 'todo-list') || (isLoadingTodos && activePage === 'todo-list');
+    
+    if (isLoadingData) {
+      const message = activePage === 'todo-list' ? 'Loading tasks...' : 'Loading sessions...';
+      return <div className="text-center text-muted-foreground"><p>{message}</p></div>;
     }
+
     if (!user) return null;
 
     switch (activePage) {
@@ -341,9 +222,6 @@ function App() {
       case "dashboard":
         return <Dashboard user={user} sessions={sessions} />;
       case "todo-list":
-        if (isLoadingTodos) {
-          return <div className="text-center text-muted-foreground"><p>Loading tasks...</p></div>;
-        }
         return <TodoList 
           todos={todos}
           onAddTask={handleAddTask}

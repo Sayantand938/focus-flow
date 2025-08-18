@@ -28,6 +28,7 @@ interface DataTableProps<TData, TValue> {
   onAddTask: () => void;
   onDeleteSelected: (ids: string[]) => void;
   onMarkSelectedDone: (ids: string[]) => void;
+  isMobile: boolean; // Add isMobile prop
 }
 
 export function DataTable<TData, TValue>({
@@ -36,6 +37,7 @@ export function DataTable<TData, TValue>({
   onAddTask,
   onDeleteSelected,
   onMarkSelectedDone,
+  isMobile, // Destructure isMobile
 }: DataTableProps<TData, TValue>) {
   const [rowSelection, setRowSelection] = React.useState({});
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
@@ -60,7 +62,6 @@ export function DataTable<TData, TValue>({
       rowSelection,
     },
     enableRowSelection: true,
-    // REMOVED: The problematic onStateChange handler is gone.
   });
 
   return (
@@ -70,6 +71,7 @@ export function DataTable<TData, TValue>({
         onAddTask={onAddTask}
         onDeleteSelected={onDeleteSelected}
         onMarkSelectedDone={onMarkSelectedDone}
+        isMobile={isMobile} // Pass isMobile to Toolbar
       />
       <div className="rounded-md border">
         <Table>

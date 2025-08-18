@@ -1,4 +1,4 @@
-// src/components/TodoList.tsx
+// src/pages/Todo/TodoList.tsx
 import { useState, useMemo } from "react";
 import { Todo, TodoStatus } from "@/utils/types";
 import { getColumns } from "./components/columns";
@@ -6,6 +6,8 @@ import { DataTable } from "./components/DataTable";
 import { TaskFormDialog } from "./components/TaskFormDialog";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { Card, CardContent } from "@/components/ui/card";
+// useLocalStorage is now commented out/removed as data is managed in App.tsx
+// import useLocalStorage from "@/hooks/useLocalStorage";
 
 interface TodoListProps {
   todos: Todo[];
@@ -26,6 +28,7 @@ function TodoList({
   onSetStatus,
   onMarkSelectedDone,
 }: TodoListProps) {
+  // const [todos, setTodos] = useLocalStorage<Todo[]>("todos", initialTodos); // Removed
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Todo | null>(null);
   const isMobile = useIsMobile();
@@ -40,10 +43,15 @@ function TodoList({
     setIsFormOpen(true);
   }
 
+  // handleDelete, handleDeleteSelected, handleSetStatus, handleMarkSelectedDone are now callbacks from props
+  // handleTaskSubmit is slightly modified to call the prop handlers
+
   const handleTaskSubmit = (values: Omit<Todo, 'id' | 'createdAt'>) => {
     if (editingTask) {
+      // Update existing task
       onUpdateTask({ ...editingTask, ...values });
     } else {
+      // Add new task
       onAddTask(values);
     }
     setIsFormOpen(false);
@@ -54,7 +62,7 @@ function TodoList({
     onEdit: handleOpenEdit,
     onDelete: onDelete,
     onSetStatus: onSetStatus,
-  }), [isMobile, todos, onDelete, onSetStatus]);
+  }), [isMobile, todos, onDelete, onSetStatus]); // Added todos dependency for useMemo
 
   return (
     <div className="w-full max-w-7xl mx-auto space-y-8">
@@ -73,6 +81,7 @@ function TodoList({
             onAddTask={handleOpenAdd}
             onDeleteSelected={onDeleteSelected}
             onMarkSelectedDone={onMarkSelectedDone}
+            isMobile={isMobile} // Pass isMobile here
           />
         </CardContent>
       </Card>
