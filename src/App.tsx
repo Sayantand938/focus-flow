@@ -21,7 +21,7 @@ import Settings from "@/pages/Settings/Settings";
 import SideMenu from "@/components/SideMenu";
 import { Auth } from "@/pages/Auth/Auth";
 import Dashboard from "@/pages/Dashboard/Dashboard";
-import { Session } from "@/utils/types";
+import { Session, Todo } from "@/utils/types";
 import FocusSheet from "@/pages/FocusSheet/FocusSheet";
 import { cn, hourToSlot, slotToHour } from "@/utils/utils";
 import TodoList from "@/pages/Todo/TodoList";
@@ -216,6 +216,74 @@ function App() {
     }
   };
 
+  const handleImportData = async (data: { sessions: Session[], todos: Todo[] }): Promise<void> => {
+    if (!user) throw new Error('No user logged in');
+
+    const originalSessions = [...sessions];
+    const originalTodos = [...todos];
+
+    // Optimistically update the UI
+    setSessions(data.sessions);
+    setTodos(data.todos);
+
+    try {
+        const batch = writeBatch(db);
+
+        // 1. Delete all existing sessions (dailyLogs)
+        const logsCollectionRef = collection(db, "users", user.uid, "dailyLogs");
+        const logsSnapshot = await getDocs(logsCollectionRef);
+        logsSnapshot.docs.forEach(doc => batch.delete(doc.ref));
+
+        // 2. Delete all existing todos
+        const todosCollectionRef = collection(db, "users", user.uid, "todos");
+        const todosSnapshot = await getDocs(todosCollectionRef);
+        todosSnapshot.docs.forEach(doc => batch.delete(doc.ref));
+
+        // 3. Add imported todos to the batch
+        data.todos.forEach(todo => {
+            // Firestore will auto-generate an ID, so we create a new doc ref
+            const newDocRef = doc(collection(db, "users", user.uid, "todos"));
+            const { id, ...todoData } = todo;
+            batch.set(newDocRef, {
+                ...todoData,
+                createdAt: new Date(todo.createdAt) // Ensure createdAt is a Date object
+            });
+        });
+
+        // 4. Transform sessions into dailyLogs and add to the batch
+        const dailyLogs: { [key: string]: number[] } = {};
+        for (const session of data.sessions) {
+            const docId = format(session.startTime, "yyyy-MM-dd");
+            const slot = hourToSlot(new Date(session.startTime).getHours());
+            if (slot !== null) {
+                if (!dailyLogs[docId]) {
+                    dailyLogs[docId] = [];
+                }
+                // Ensure no duplicate slots per day
+                if (!dailyLogs[docId].includes(slot)) {
+                    dailyLogs[docId].push(slot);
+                }
+            }
+        }
+
+        for (const [docId, slots] of Object.entries(dailyLogs)) {
+            const logDocRef = doc(db, "users", user.uid, "dailyLogs", docId);
+            batch.set(logDocRef, { completedSlots: slots });
+        }
+
+        // 5. Commit the entire batch operation
+        await batch.commit();
+        console.log("✅ Data imported and synchronized with Firebase.");
+
+    } catch (error) {
+        console.error("Error during data import:", error);
+        // Rollback UI on failure
+        setSessions(originalSessions);
+        setTodos(originalTodos);
+        throw error; // Re-throw to be handled by the Settings component
+    }
+};
+
   const renderContent = () => {
     const isLoadingData = (isLoadingSessions && activePage !== 'todo-list') || (isLoadingTodos && activePage === 'todo-list');
     
@@ -242,7 +310,12 @@ function App() {
           onMarkSelectedDone={handleMarkSelectedTasksDone}
         />;
       case "settings":
-        return <Settings onResetData={handleResetData} />;
+        return <Settings 
+                  onResetData={handleResetData} 
+                  onImportData={handleImportData}
+                  sessions={sessions}
+                  todos={todos}
+                />;
       default:
         return <FocusSheet sessions={sessions} onToggleSession={handleToggleSession} />;
     }
