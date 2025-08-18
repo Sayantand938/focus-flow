@@ -48,7 +48,7 @@ function FocusSheet({ sessions, onToggleSession }: FocusSheetProps) {
   );
 
   return (
-    <div className="w-full max-w-4xl mx-auto space-y-10 pb-12">
+    <div className="w-full max-w-4xl mx-auto space-y-10">
       <header>
         <h1 className="text-3xl font-bold">Focus Sheet</h1>
         <p className="text-muted-foreground">

@@ -260,9 +260,10 @@ function App() {
       />
       <main
         className={cn(
-          "flex-1 flex justify-center overflow-y-auto min-h-screen",
+          "flex-1 flex flex-col items-center overflow-y-auto min-h-screen",
           "p-4 sm:p-6 lg:p-8",
-          "pt-20 md:pt-8"
+          "pt-20 md:pt-8",
+          "pb-12 sm:pb-16"
         )}
       >
         {renderContent()}
