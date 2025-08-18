@@ -6,7 +6,8 @@ import {
   User as UserIcon,
   ClipboardList,
   ListTodo,
-  Target, // Import the new icon
+  Target,
+  Timer as TimerIcon,
 } from "lucide-react";
 import { cn } from "@/utils/utils";
 import { useState } from "react";
@@ -14,6 +15,7 @@ import { Button } from "../ui/button";
 import { User } from "firebase/auth";
 
 const menuItems = [
+  { name: "Timer", icon: TimerIcon, path: "timer" },
   { name: "Focus Sheet", icon: ClipboardList, path: "focus-sheet" },
   { name: "Dashboard", icon: LayoutDashboard, path: "dashboard" },
   { name: "Todo List", icon: ListTodo, path: "todo-list" },

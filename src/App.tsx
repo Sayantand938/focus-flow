@@ -1,5 +1,5 @@
 // D:/Coding/tauri-projects/focus-flow/src/App.tsx
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { auth, db } from "@/services/firebase";
 import { onAuthStateChanged, User, signOut } from "firebase/auth";
 import {
@@ -26,6 +26,25 @@ import FocusSheet from "@/features/FocusSheet/FocusSheet";
 import { cn, hourToSlot } from "@/utils/utils";
 import TodoList from "@/features/Todo/TodoList";
 import { useTodos } from "@/hooks/useTodos";
+import PomodoroTimer from "@/features/Timer/PomodoroTimer";
+
+const WORK_DURATION = 30 * 60; // 30 minutes
+
+// Helper to get initial timer value from localStorage
+const getInitialTime = () => {
+  const savedTime = localStorage.getItem('pomodoro-time');
+  if (savedTime) {
+    const time = parseInt(savedTime, 10);
+    return time > 0 && time <= WORK_DURATION ? time : WORK_DURATION;
+  }
+  return WORK_DURATION;
+};
+
+// Helper to get initial timer status from localStorage
+const getInitialIsActive = () => {
+    const savedIsActive = localStorage.getItem('pomodoro-isActive');
+    return savedIsActive === 'true';
+}
 
 /**
  * Creates a user profile document in Firestore if one doesn't already exist.
@@ -75,6 +94,42 @@ function App() {
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [activePage, setActivePage] = useState("focus-sheet");
   const [dailyLogs, setDailyLogs] = useState<DailyLog[]>([]);
+
+  // --- Pomodoro Timer State and Logic ---
+  const [timeLeft, setTimeLeft] = useState(getInitialTime);
+  const [isTimerActive, setIsTimerActive] = useState(getInitialIsActive);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    localStorage.setItem('pomodoro-time', String(timeLeft));
+    localStorage.setItem('pomodoro-isActive', String(isTimerActive));
+
+    if (isTimerActive && timeLeft > 0) {
+      intervalRef.current = setInterval(() => {
+        setTimeLeft((prevTime) => prevTime - 1);
+      }, 1000);
+    } else if (!isTimerActive || timeLeft === 0) {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      if (timeLeft === 0) {
+        setIsTimerActive(false);
+      }
+    }
+    
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [isTimerActive, timeLeft]);
+
+  const handlePlayPause = () => {
+    setIsTimerActive(!isTimerActive);
+  };
+
+  const handleReset = () => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    setIsTimerActive(false);
+    setTimeLeft(WORK_DURATION);
+  };
+  // --- End of Pomodoro Timer Logic ---
 
   const {
     todos,
@@ -254,6 +309,14 @@ function App() {
     if (!user) return null;
 
     switch (activePage) {
+      case "timer":
+        return <PomodoroTimer 
+          timeLeft={timeLeft}
+          isActive={isTimerActive}
+          onPlayPause={handlePlayPause}
+          onReset={handleReset}
+          duration={WORK_DURATION}
+        />;
       case "focus-sheet":
         return <FocusSheet studiedDays={studiedDays} onToggleSession={handleToggleSession} />;
       case "dashboard":
