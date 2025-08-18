@@ -66,7 +66,7 @@ export function DataTableToolbar<TData>({
           onChange={(event) =>
             table.getColumn("description")?.setFilterValue(event.target.value)
           }
-          className="h-9 w-full sm:w-[250px]"
+          className="h-9 w-full sm:w-[250px] border-none focus-visible:ring-0" // Added border-none and focus-visible:ring-0
         />
         
         {/* Unified Filter Dropdown for all screen sizes */}
