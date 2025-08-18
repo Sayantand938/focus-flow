@@ -1,5 +1,6 @@
-// src/features/Timer/components/TimerDisplay.tsx
+// D:/Coding/tauri-projects/focus-flow/src/features/Timer/components/TimerDisplay.tsx
 import React from 'react';
+import { motion } from 'framer-motion';
 
 interface TimerDisplayProps {
   timeLeft: number;
@@ -13,15 +14,14 @@ const formatTime = (seconds: number) => {
 };
 
 const TimerDisplay: React.FC<TimerDisplayProps> = ({ timeLeft, duration }) => {
-  const radius = 120; // Increased from 110
+  const radius = 120;
   const stroke = 12;
   const normalizedRadius = radius - stroke * 2;
   const circumference = normalizedRadius * 2 * Math.PI;
   const progress = timeLeft / duration;
-  const strokeDashoffset = circumference * (1 - progress);
 
   return (
-    <div className="relative flex items-center justify-center size-72"> {/* Increased from size-64 */}
+    <div className="relative flex items-center justify-center size-72">
       <svg
         height={radius * 2}
         width={radius * 2}
@@ -35,19 +35,22 @@ const TimerDisplay: React.FC<TimerDisplayProps> = ({ timeLeft, duration }) => {
           cx={radius}
           cy={radius}
         />
-        <circle
+        <motion.circle
           stroke="var(--color-primary)"
           fill="transparent"
           strokeWidth={stroke}
           strokeDasharray={`${circumference} ${circumference}`}
-          style={{ strokeDashoffset, transition: 'stroke-dashoffset 0.3s linear' }}
           strokeLinecap="round"
           r={normalizedRadius}
           cx={radius}
           cy={radius}
+          initial={false}
+          animate={{ strokeDashoffset: circumference * (1 - progress) }}
+          transition={{ duration: 1, ease: "linear" }}
         />
       </svg>
       <div className="absolute flex flex-col items-center justify-center">
+        {/* Replaced motion.span with a regular span to remove the pulsing effect */}
         <span className="text-6xl font-bold tracking-tighter font-mono">
           {formatTime(timeLeft)}
         </span>

@@ -1,3 +1,4 @@
+// D:/Coding/tauri-projects/focus-flow/src/components/layout/SideMenu.tsx
 import {
   LayoutDashboard,
   LogOut,
@@ -11,6 +12,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/utils/utils";
 import { useState } from "react";
+import { motion } from "framer-motion";
 import { Button } from "../ui/button";
 import { User } from "firebase/auth";
 
@@ -79,14 +81,23 @@ function SideMenu({ activePage, setActivePage, user, onSignOut }: SideMenuProps)
               key={item.name}
               onClick={() => handlePageChange(item.path)}
               className={cn(
-                "flex items-center text-left gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors w-full",
+                "relative flex items-center text-left gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors w-full",
                 activePage === item.path
-                  ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                  ? "text-sidebar-primary-foreground"
                   : "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
               )}
             >
-              <item.icon className="w-5 h-5" />
-              <span>{item.name}</span>
+              {activePage === item.path && (
+                <motion.div
+                  layoutId="active-menu-indicator"
+                  className="absolute inset-0 bg-sidebar-primary rounded-lg"
+                  transition={{ type: "spring", stiffness: 350, damping: 30 }}
+                />
+              )}
+              <div className="relative flex items-center gap-3">
+                <item.icon className="w-5 h-5" />
+                <span>{item.name}</span>
+              </div>
             </button>
           ))}
         </nav>

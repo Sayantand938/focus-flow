@@ -1,4 +1,4 @@
-// src\pages\Todo\TodoList.tsx
+// D:/Coding/tauri-projects/focus-flow/src/features/Todo/TodoList.tsx
 import { useState, useMemo } from "react";
 import { Todo, TodoStatus } from "@/utils/types";
 import { getColumns } from "./components/Columns";
@@ -6,6 +6,7 @@ import { DataTable } from "./components/DataTable";
 import { TaskFormDialog } from "./components/TaskFormDialog";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { Card, CardContent } from "@/components/ui/card";
+import { motion, Variants } from "framer-motion";
 
 interface TodoListProps {
   todos: Todo[];
@@ -26,7 +27,6 @@ function TodoList({
   onSetStatus,
   onMarkSelectedDone,
 }: TodoListProps) {
-  // const [todos, setTodos] = useLocalStorage<Todo[]>("todos", initialTodos); // Removed
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Todo | null>(null);
   const isMobile = useIsMobile();
@@ -41,15 +41,10 @@ function TodoList({
     setIsFormOpen(true);
   }
 
-  // handleDelete, handleDeleteSelected, handleSetStatus, handleMarkSelectedDone are now callbacks from props
-  // handleTaskSubmit is slightly modified to call the prop handlers
-
   const handleTaskSubmit = (values: Omit<Todo, 'id' | 'createdAt'>) => {
     if (editingTask) {
-      // Update existing task
       onUpdateTask({ ...editingTask, ...values });
     } else {
-      // Add new task
       onAddTask(values);
     }
     setIsFormOpen(false);
@@ -60,29 +55,53 @@ function TodoList({
     onEdit: handleOpenEdit,
     onDelete: onDelete,
     onSetStatus: onSetStatus,
-  }), [isMobile, todos, onDelete, onSetStatus]); // Added todos dependency for useMemo
+  }), [isMobile, todos, onDelete, onSetStatus]);
+
+  const containerVariants: Variants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: { staggerChildren: 0.1, delayChildren: 0.1 },
+    },
+  };
+
+  const itemVariants: Variants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: {
+      y: 0,
+      opacity: 1,
+      transition: { duration: 0.3, ease: "easeOut" },
+    },
+  };
 
   return (
-    <div className="w-full max-w-7xl mx-auto space-y-8">
-      <header>
+    <motion.div
+      className="w-full max-w-7xl mx-auto space-y-8"
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+    >
+      <motion.header variants={itemVariants}>
         <h1 className="text-3xl font-bold">Todo List</h1>
         <p className="text-muted-foreground">
           A robust task management board. Here's a look at your current tasks.
         </p>
-      </header>
+      </motion.header>
       
-      <Card>
-        <CardContent className="pt-6">
-          <DataTable
-            columns={columns}
-            data={todos}
-            onAddTask={handleOpenAdd}
-            onDeleteSelected={onDeleteSelected}
-            onMarkSelectedDone={onMarkSelectedDone}
-            isMobile={isMobile} // Pass isMobile here
-          />
-        </CardContent>
-      </Card>
+      <motion.div variants={itemVariants}>
+        <Card>
+          <CardContent className="pt-6">
+            <DataTable
+              columns={columns}
+              data={todos}
+              onAddTask={handleOpenAdd}
+              onDeleteSelected={onDeleteSelected}
+              onMarkSelectedDone={onMarkSelectedDone}
+              isMobile={isMobile}
+            />
+          </CardContent>
+        </Card>
+      </motion.div>
 
       <TaskFormDialog
         isOpen={isFormOpen}
@@ -93,7 +112,7 @@ function TodoList({
         onSubmit={handleTaskSubmit}
         task={editingTask}
       />
-    </div>
+    </motion.div>
   );
 }
 

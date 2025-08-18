@@ -16,6 +16,7 @@ import {
   serverTimestamp,
 } from "firebase/firestore";
 import { format } from "date-fns";
+import { motion, AnimatePresence } from "framer-motion";
 
 import Settings from "@/features/Settings/Settings";
 import SideMenu from "@/components/layout/SideMenu";
@@ -300,7 +301,18 @@ function App() {
         onSignOut={handleSignOut}
       />
       <main className={cn("flex-1 flex flex-col items-center overflow-y-auto min-h-screen", "p-4 sm:p-6 lg:p-8", "pt-28 md:pt-8", "pb-12 sm:pb-16")}>
-        {renderContent()}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activePage}
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -15 }}
+            transition={{ duration: 0.25, ease: "easeInOut" }}
+            className="w-full flex-1 flex flex-col"
+          >
+            {renderContent()}
+          </motion.div>
+        </AnimatePresence>
       </main>
     </div>
   );

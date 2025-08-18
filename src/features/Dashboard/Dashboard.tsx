@@ -1,4 +1,6 @@
+// D:/Coding/tauri-projects/focus-flow/src/features/Dashboard/Dashboard.tsx
 import { useMemo } from "react";
+import { motion, Variants } from "framer-motion";
 import { StudiedDays } from "@/utils/types";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { format, subDays } from "date-fns";
@@ -64,6 +66,23 @@ export function Dashboard({ user, studiedDays }: DashboardProps) {
       ? (streaksAndGoals.perfectDays / overallStats.totalDays) * 100
       : 0;
 
+  const containerVariants: Variants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: { staggerChildren: 0.1 },
+    },
+  };
+
+  const itemVariants: Variants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: {
+      y: 0,
+      opacity: 1,
+      transition: { duration: 0.3, ease: "easeOut" },
+    },
+  };
+
   if (Object.keys(studiedDays).length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground p-4">
@@ -76,29 +95,44 @@ export function Dashboard({ user, studiedDays }: DashboardProps) {
   }
 
   return (
-    <div className="w-full max-w-7xl mx-auto space-y-8">
-      <header>
+    <motion.div
+      className="w-full max-w-7xl mx-auto space-y-8"
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+    >
+      <motion.header variants={itemVariants}>
         <h1 className="text-3xl font-bold">Dashboard</h1>
         <p className="text-muted-foreground">
           Welcome back, {user.displayName || "User"}!
         </p>
-      </header>
-      <ShiftReport todayShiftStats={todayShiftStats} />
+      </motion.header>
+      <motion.div variants={itemVariants}>
+        <ShiftReport todayShiftStats={todayShiftStats} />
+      </motion.div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <StreaksAndGoals
-          streaksAndGoals={streaksAndGoals}
-          goalCompletionRate={goalCompletionRate}
-        />
-        <OverallStats overallStats={overallStats} />
+        <motion.div variants={itemVariants}>
+          <StreaksAndGoals
+            streaksAndGoals={streaksAndGoals}
+            goalCompletionRate={goalCompletionRate}
+          />
+        </motion.div>
+        <motion.div variants={itemVariants}>
+          <OverallStats overallStats={overallStats} />
+        </motion.div>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <WeeklyProgressChart past7DaysProgress={past7DaysProgress} isMobile={isMobile} />
-        <StudyTimeTrend past30DaysProgress={past30DaysProgress} isMobile={isMobile} />
+        <motion.div variants={itemVariants}>
+          <WeeklyProgressChart past7DaysProgress={past7DaysProgress} isMobile={isMobile} />
+        </motion.div>
+        <motion.div variants={itemVariants}>
+          <StudyTimeTrend past30DaysProgress={past30DaysProgress} isMobile={isMobile} />
+        </motion.div>
       </div>
-      <div>
+      <motion.div variants={itemVariants}>
         <CustomHeatmap studiedDays={studiedDays} />
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }
 

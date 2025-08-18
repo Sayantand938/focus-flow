@@ -1,6 +1,8 @@
+// D:/Coding/tauri-projects/focus-flow/src/features/Settings/Settings.tsx
 import { useState } from "react";
 import { save, open } from "@tauri-apps/plugin-dialog";
 import { writeTextFile, readTextFile } from "@tauri-apps/plugin-fs";
+import { motion, Variants } from "framer-motion";
 import { Todo, DailyLog } from "@/utils/types";
 import { AppearanceSettings } from "./components/AppearanceSettings";
 import { DataManagementSettings } from "./components/DataManagementSettings";
@@ -118,35 +120,63 @@ function Settings({ onResetData, onImportData, dailyLogs, todos }: SettingsProps
     }
   };
 
+  const containerVariants: Variants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: { staggerChildren: 0.1 },
+    },
+  };
+
+  const itemVariants: Variants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: {
+      y: 0,
+      opacity: 1,
+      transition: { duration: 0.3, ease: "easeOut" },
+    },
+  };
+
   return (
-    <div className="w-full max-w-3xl mx-auto space-y-8">
-      <header>
+    <motion.div
+      className="w-full max-w-3xl mx-auto space-y-8"
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+    >
+      <motion.header variants={itemVariants}>
         <h1 className="text-3xl font-bold">Settings</h1>
         <p className="text-muted-foreground">
           Manage your application settings.
         </p>
-      </header>
+      </motion.header>
 
-      <AppearanceSettings />
+      <motion.div variants={itemVariants}>
+        <AppearanceSettings />
+      </motion.div>
 
-      <DataManagementSettings 
-        isExporting={isExporting}
-        isOpeningFile={isOpeningFile}
-        isUploading={isUploading}
-        onExport={handleExport}
-        onInitiateImport={handleInitiateImport}
-        onConfirmImport={handleConfirmImport}
-        isImportDialogOpen={isImportDialogOpen}
-        onImportDialogOpenChange={handleImportDialogChange}
-      />
+      <motion.div variants={itemVariants}>
+        <DataManagementSettings 
+          isExporting={isExporting}
+          isOpeningFile={isOpeningFile}
+          isUploading={isUploading}
+          onExport={handleExport}
+          onInitiateImport={handleInitiateImport}
+          onConfirmImport={handleConfirmImport}
+          isImportDialogOpen={isImportDialogOpen}
+          onImportDialogOpenChange={handleImportDialogChange}
+        />
+      </motion.div>
 
-      <DangerZone 
-        isResetting={isResetting}
-        onReset={handleResetConfirm}
-        isResetDialogOpen={isResetDialogOpen}
-        onResetDialogOpenChange={setIsResetDialogOpen}
-      />
-    </div>
+      <motion.div variants={itemVariants}>
+        <DangerZone 
+          isResetting={isResetting}
+          onReset={handleResetConfirm}
+          isResetDialogOpen={isResetDialogOpen}
+          onResetDialogOpenChange={setIsResetDialogOpen}
+        />
+      </motion.div>
+    </motion.div>
   );
 }
 
