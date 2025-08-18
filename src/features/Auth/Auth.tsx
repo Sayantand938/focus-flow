@@ -4,16 +4,14 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
-import { auth, googleProvider } from "@/services/firebase";
+import { auth } from "@/services/firebase";
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
-  signInWithPopup,
 } from "firebase/auth";
 import { FirebaseError } from "firebase/app";
 
 import EmailPasswordForm from "./components/EmailPasswordForm";
-import GoogleSignInButton from "./components/GoogleSignInButton";
 import ErrorAlert from "./components/ErrorAlert";
 
 const formSchema = z.object({
@@ -44,8 +42,6 @@ export default function Auth() {
         case "auth/invalid-credential":
           setError("Invalid email or password.");
           break;
-        case "auth/popup-closed-by-user":
-          break;
         default:
           setError("An unexpected error occurred. Please try again.");
           break;
@@ -71,18 +67,6 @@ export default function Auth() {
     }
   };
 
-  const handleGoogleSignIn = async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      await signInWithPopup(auth, googleProvider);
-    } catch (err) {
-      handleAuthError(err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   return (
     <div className="flex items-center justify-center min-h-screen bg-background text-foreground p-4">
       <Card className="w-full max-w-md rounded-xl shadow-lg border border-border bg-card text-card-foreground">
@@ -101,17 +85,6 @@ export default function Auth() {
             isLoading={isLoading}
             mode={mode}
           />
-
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t border-border" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
-            </div>
-          </div>
-
-          <GoogleSignInButton onClick={handleGoogleSignIn} disabled={isLoading} />
         </CardContent>
 
         <CardFooter className="flex justify-center text-sm">

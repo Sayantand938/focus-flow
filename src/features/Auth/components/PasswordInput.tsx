@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { FormControl, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Lock } from "lucide-react";
 
 type PasswordInputProps = {
   field: any;
@@ -16,12 +16,15 @@ export default function PasswordInput({ field }: PasswordInputProps) {
       <FormLabel>Password</FormLabel>
       <div className="relative">
         <FormControl>
-          <Input
-            type={showPassword ? "text" : "password"}
-            placeholder="••••••••"
-            {...field}
-            className="bg-input text-foreground border-border pr-10"
-          />
+          <>
+            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              type={showPassword ? "text" : "password"}
+              placeholder="••••••••"
+              {...field}
+              className="bg-input text-foreground border-border pl-10 pr-10"
+            />
+          </>
         </FormControl>
         <Button
           type="button"

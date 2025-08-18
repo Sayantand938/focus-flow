@@ -1,7 +1,9 @@
 import { useForm } from "react-hook-form";
 import { Form, FormField, FormItem, FormLabel, FormMessage, FormControl } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui//button";
 import PasswordInput from "./PasswordInput";
+import { Mail } from "lucide-react";
 
 type FormValues = {
   email: string;
@@ -25,15 +27,20 @@ export default function EmailPasswordForm({ form, onSubmit, isLoading, mode }: E
           render={({ field }) => (
             <FormItem>
               <FormLabel>Email</FormLabel>
-              <FormControl>
-                <input
-                  type="email"
-                  placeholder="name@example.com"
-                  autoComplete="email"
-                  {...field}
-                  className="bg-input text-foreground border-border w-full p-2 rounded-md"
-                />
-              </FormControl>
+              <div className="relative">
+                <FormControl>
+                  <>
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      type="email"
+                      placeholder="name@example.com"
+                      autoComplete="email"
+                      {...field}
+                      className="bg-input text-foreground border-border w-full p-2 rounded-md pl-10"
+                    />
+                  </>
+                </FormControl>
+              </div>
               <FormMessage />
             </FormItem>
           )}
