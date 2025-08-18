@@ -6,11 +6,11 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
-  CardDescription,
 } from "../../components/ui/card";
 import { Separator } from "../../components/ui/separator";
 import { Switch } from "../../components/ui/switch";
 import { isSameDay } from "date-fns";
+import { Badge } from "../../components/ui/badge";
 
 type FocusSheetProps = {
   sessions: Session[];
@@ -19,35 +19,28 @@ type FocusSheetProps = {
 
 /**
  * Formats an hour (0-23) into a detailed 12-hour format.
- * e.g., 7 -> "07:00 AM", 13 -> "01:00 PM", 0 -> "12:00 AM"
  */
 const formatHourDetailed = (hour: number): string => {
-  const ampm = hour >= 12 ? 'PM' : 'AM';
+  const ampm = hour >= 12 ? "PM" : "AM";
   let displayHour = hour % 12;
-  if (displayHour === 0) {
-    displayHour = 12; // Handle midnight (0) and noon (12)
-  }
-  const paddedHour = displayHour.toString().padStart(2, '0');
+  if (displayHour === 0) displayHour = 12;
+  const paddedHour = displayHour.toString().padStart(2, "0");
   return `${paddedHour}:00 ${ampm}`;
 };
 
 /**
  * Creates a formatted string for a 1-hour time slot.
- * e.g., 7 -> "07:00 AM - 08:00 AM"
  */
 const formatHourSlot = (hour: number): string => {
   const start = formatHourDetailed(hour);
-  // Use modulo to handle the 11 PM -> 12 AM transition correctly
-  const end = formatHourDetailed((hour + 1) % 24); 
+  const end = formatHourDetailed((hour + 1) % 24);
   return `${start} - ${end}`;
 };
 
-
 function FocusSheet({ sessions, onToggleSession }: FocusSheetProps) {
-  const today = new Date(); // Use a fresh date for display purposes
-  today.setHours(0, 0, 0, 0); // Normalize to the start of the day
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
 
-  // Create a Set of hours that have a completed session today for quick lookups.
   const todaysCompletedHours = new Set(
     sessions
       .filter((s) => isSameDay(s.startTime, today))
@@ -55,7 +48,7 @@ function FocusSheet({ sessions, onToggleSession }: FocusSheetProps) {
   );
 
   return (
-    <div className="w-full max-w-4xl mx-auto space-y-8">
+    <div className="w-full max-w-4xl mx-auto space-y-10 pb-12">
       <header>
         <h1 className="text-3xl font-bold">Focus Sheet</h1>
         <p className="text-muted-foreground">
@@ -66,33 +59,51 @@ function FocusSheet({ sessions, onToggleSession }: FocusSheetProps) {
       {SHIFTS.map((shift) => (
         <Card key={shift.name}>
           <CardHeader>
-            <CardTitle>{shift.name}</CardTitle>
-            <CardDescription className="mb-2">{`From ${formatHourDetailed(shift.startHour)} to ${formatHourDetailed(shift.endHour)}`}</CardDescription>
+            <CardTitle className="text-xl font-semibold">
+              {shift.name}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {/* Generate an array of hours for the current shift */}
-              {Array.from({ length: shift.endHour - shift.startHour }, (_, i) => {
+              {Array.from(
+                { length: shift.endHour - shift.startHour },
+                (_, i) => {
                   const hour = shift.startHour + i;
                   const isChecked = todaysCompletedHours.has(hour);
 
                   return (
                     <div key={hour}>
-                      <div className="flex items-center justify-between">
-                        <span className="font-mono text-sm sm:text-base">
+                      {/* ✅ Responsive grid:
+                           - Mobile → time gets 2x space
+                           - Desktop → equal 3 columns */}
+                      <div className="grid grid-cols-[2fr_1fr_1fr] md:grid-cols-3 items-center gap-2">
+                        {/* Left: Time */}
+                        <span className="font-mono text-sm sm:text-base whitespace-nowrap">
                           {formatHourSlot(hour)}
                         </span>
-                        <Switch
-                          checked={isChecked}
-                          onCheckedChange={(checked) =>
-                            // We no longer pass the 'today' object.
-                            // The handler will determine the date itself.
-                            onToggleSession(hour, checked)
-                          }
-                          id={`session-${hour}`}
-                        />
+
+                        {/* Middle: Status Badge */}
+                        <div className="flex justify-center">
+                          {isChecked ? (
+                            <Badge variant="logged">Logged</Badge>
+                          ) : (
+                            <Badge variant="pending">Pending</Badge>
+                          )}
+                        </div>
+
+                        {/* Right: Switch */}
+                        <div className="flex justify-end">
+                          <Switch
+                            checked={isChecked}
+                            onCheckedChange={(checked) =>
+                              onToggleSession(hour, checked)
+                            }
+                            id={`session-${hour}`}
+                          />
+                        </div>
                       </div>
-                      {/* Add a separator between items, but not after the last one */}
+
+                      {/* Divider */}
                       {i < shift.endHour - shift.startHour - 1 && (
                         <Separator className="mt-4" />
                       )}
