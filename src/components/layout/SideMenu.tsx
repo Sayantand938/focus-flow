@@ -5,7 +5,6 @@ import {
   Settings,
   User as UserIcon,
   ClipboardList,
-  X,
   ListTodo,
   Target, // Import the new icon
 } from "lucide-react";
@@ -62,19 +61,13 @@ function SideMenu({ activePage, setActivePage, user, onSignOut }: SideMenuProps)
         )}
       >
         {/* Header with Close button for Mobile */}
-        <div className="flex items-center justify-between p-2 mb-8">
+        <div className="flex items-center justify-between pt-10 md:pt-6 p-2 mb-8">
           <div className="flex items-center gap-3">
             {/* The new Target icon from Lucide */}
             <Target className="size-8 text-primary" />
             <h1 className="text-xl font-bold">Focus Flow</h1>
           </div>
-          <button
-            className="md:hidden p-2"
-            onClick={() => setIsMobileMenuOpen(false)}
-            aria-label="Close menu"
-          >
-            <X className="size-6" />
-          </button>
+          {/* ❌ Removed the close button */}
         </div>
 
         {/* Navigation */}
