@@ -6,8 +6,6 @@ import { DataTable } from "./components/DataTable";
 import { TaskFormDialog } from "./components/TaskFormDialog";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { Card, CardContent } from "@/components/ui/card";
-// useLocalStorage is now commented out/removed as data is managed in App.tsx
-// import useLocalStorage from "@/hooks/useLocalStorage";
 
 interface TodoListProps {
   todos: Todo[];

@@ -1,6 +1,6 @@
 import { useForm } from "react-hook-form";
-import { Form, FormField, FormItem, FormLabel, FormMessage, FormControl } from "../../../components/ui/form";
-import { Button } from "../../../components/ui/button";
+import { Form, FormField, FormItem, FormLabel, FormMessage, FormControl } from "@/components/ui/form";
+import { Button } from "@/components/ui//button";
 import PasswordInput from "./PasswordInput";
 
 type FormValues = {
