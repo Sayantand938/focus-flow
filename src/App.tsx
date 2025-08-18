@@ -17,14 +17,14 @@ import {
 } from "firebase/firestore";
 import { format } from "date-fns";
 
-import Settings from "@/pages/Settings/Settings";
-import SideMenu from "@/components/SideMenu";
-import { Auth } from "@/pages/Auth/Auth";
-import Dashboard from "@/pages/Dashboard/Dashboard";
+import Settings from "@/features/Settings/Settings";
+import SideMenu from "@/components/layout/SideMenu";
+import { Auth } from "@/features/Auth/Auth";
+import Dashboard from "@/features/Dashboard/Dashboard";
 import { Todo, DailyLog, StudiedDays } from "@/utils/types";
-import FocusSheet from "@/pages/FocusSheet/FocusSheet";
+import FocusSheet from "@/features/FocusSheet/FocusSheet";
 import { cn, hourToSlot } from "@/utils/utils";
-import TodoList from "@/pages/Todo/TodoList";
+import TodoList from "@/features/Todo/TodoList";
 import { useTodos } from "@/hooks/useTodos";
 
 /**

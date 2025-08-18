@@ -1,7 +1,7 @@
 // src\pages\Todo\TodoList.tsx
 import { useState, useMemo } from "react";
 import { Todo, TodoStatus } from "@/utils/types";
-import { getColumns } from "./components/columns";
+import { getColumns } from "./components/Columns";
 import { DataTable } from "./components/DataTable";
 import { TaskFormDialog } from "./components/TaskFormDialog";
 import { useIsMobile } from "@/hooks/useIsMobile";

@@ -27,7 +27,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 
-import { priorities, statuses } from "./columns";
+import { priorities, statuses } from "./Columns";
 import { Todo } from "@/utils/types";
 
 const taskFormSchema = z.object({

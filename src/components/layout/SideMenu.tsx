@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/utils/utils";
 import { useState } from "react";
-import { Button } from "./ui/button";
+import { Button } from "../ui/button";
 import { User } from "firebase/auth";
 
 const menuItems = [

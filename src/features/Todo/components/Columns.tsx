@@ -1,4 +1,4 @@
-// src/pages/Todo/components/columns.tsx
+// src/pages/Todo/components/Columns.tsx
 import { ColumnDef } from "@tanstack/react-table";
 import { format } from "date-fns";
 import { Todo, TodoStatus } from "@/utils/types";

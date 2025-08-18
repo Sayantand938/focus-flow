@@ -15,7 +15,7 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuSubContent
 } from "@/components/ui/dropdown-menu";
-import { statuses, priorities } from "./columns";
+import { statuses, priorities } from "./Columns";
 import { cn } from "@/utils/utils";
 
 interface DataTableToolbarProps<TData> {
