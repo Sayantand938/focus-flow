@@ -40,7 +40,8 @@ export function DataTable<TData, TValue>({
   const [rowSelection, setRowSelection] = React.useState({});
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [sorting, setSorting] = React.useState<SortingState>([
-    { id: 'description', desc: false }
+    { id: 'status', desc: false },
+    { id: 'createdAt', desc: true }
   ]);
 
   const table = useReactTable({

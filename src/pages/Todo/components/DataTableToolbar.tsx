@@ -24,6 +24,8 @@ interface DataTableToolbarProps<TData> {
 export function DataTableToolbar<TData>({
   table,
   onAddTask,
+  onDeleteSelected,
+  onMarkSelectedDone,
 }: DataTableToolbarProps<TData>) {
   const selectedRows = table.getFilteredSelectedRowModel().rows;
   const hasSelection = selectedRows.length > 0;
@@ -34,12 +36,28 @@ export function DataTableToolbar<TData>({
     exit: { opacity: 0, x: -10 },
   };
 
+  // Extract IDs from selected rows
+  const selectedIds = selectedRows.map((row: any) => row.original.id);
+
+  const handleMarkDone = () => {
+    onMarkSelectedDone(selectedIds);
+    table.toggleAllPageRowsSelected(false);
+  };
+
+  const handleDelete = () => {
+    onDeleteSelected(selectedIds);
+    table.toggleAllPageRowsSelected(false);
+  };
+
   return (
     <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
       <div className="flex w-full flex-1 items-center gap-2">
         <Input
           placeholder="Filter tasks..."
-          readOnly
+          value={(table.getColumn("description")?.getFilterValue() as string) ?? ""}
+          onChange={(event) =>
+            table.getColumn("description")?.setFilterValue(event.target.value)
+          }
           className="h-9 w-full sm:w-[250px]"
         />
         <DropdownMenu>
@@ -53,7 +71,22 @@ export function DataTableToolbar<TData>({
             <DropdownMenuLabel>Filter by status</DropdownMenuLabel>
             <DropdownMenuSeparator />
             {statuses.map((status) => (
-              <DropdownMenuCheckboxItem key={status.value} disabled>
+              <DropdownMenuCheckboxItem
+                key={status.value}
+                checked={(table.getColumn("status")?.getFilterValue() as string[] | undefined)?.includes(status.value) ?? false}
+                onCheckedChange={(value) => {
+                  const currentFilter = table.getColumn("status")?.getFilterValue() as string[] | undefined;
+                  if (value) {
+                    table.getColumn("status")?.setFilterValue(
+                      currentFilter ? [...currentFilter, status.value] : [status.value]
+                    );
+                  } else {
+                    table.getColumn("status")?.setFilterValue(
+                      currentFilter?.filter((val) => val !== status.value) ?? []
+                    );
+                  }
+                }}
+              >
                 {status.label}
               </DropdownMenuCheckboxItem>
             ))}
@@ -71,7 +104,22 @@ export function DataTableToolbar<TData>({
             <DropdownMenuLabel>Filter by priority</DropdownMenuLabel>
             <DropdownMenuSeparator />
             {priorities.map((priority) => (
-              <DropdownMenuCheckboxItem key={priority.value} disabled>
+              <DropdownMenuCheckboxItem
+                key={priority.value}
+                checked={(table.getColumn("priority")?.getFilterValue() as string[] | undefined)?.includes(priority.value) ?? false}
+                onCheckedChange={(value) => {
+                  const currentFilter = table.getColumn("priority")?.getFilterValue() as string[] | undefined;
+                  if (value) {
+                    table.getColumn("priority")?.setFilterValue(
+                      currentFilter ? [...currentFilter, priority.value] : [priority.value]
+                    );
+                  } else {
+                    table.getColumn("priority")?.setFilterValue(
+                      currentFilter?.filter((val) => val !== priority.value) ?? []
+                    );
+                  }
+                }}
+              >
                 {priority.label}
               </DropdownMenuCheckboxItem>
             ))}
@@ -93,7 +141,7 @@ export function DataTableToolbar<TData>({
                 variant="outline"
                 size="sm"
                 className="h-9 w-full sm:w-auto"
-                onClick={() => table.toggleAllPageRowsSelected(false)}
+                onClick={handleMarkDone}
               >
                 <CheckCircle2 className="mr-2 h-4 w-4" />
                 Mark Done ({selectedRows.length})
@@ -102,7 +150,7 @@ export function DataTableToolbar<TData>({
                 variant="destructive"
                 size="sm"
                 className="h-9 w-full sm:w-auto"
-                onClick={() => table.toggleAllPageRowsSelected(false)}
+                onClick={handleDelete}
               >
                 <Trash2 className="mr-2 h-4 w-4" />
                 Delete ({selectedRows.length})

@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/select";
 import { priorities, statuses } from "./columns";
 import { useEffect } from "react";
+import { Todo } from "@/utils/types";
 
 const taskFormSchema = z.object({
   description: z.string().min(3, "Description must be at least 3 characters."),
@@ -44,41 +45,56 @@ interface TaskFormDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (values: TaskFormValues) => void;
+  task?: Todo | null;
 }
 
 export function TaskFormDialog({
   isOpen,
   onClose,
   onSubmit,
+  task,
 }: TaskFormDialogProps) {
   const form = useForm<TaskFormValues>({
     resolver: zodResolver(taskFormSchema),
     defaultValues: {
-      description: "A new awesome task!",
-      tag: "General",
-      priority: "medium",
-      status: "todo",
+      description: task?.description || "",
+      tag: task?.tag || "",
+      priority: task?.priority || "medium",
+      status: task?.status || "todo",
     },
   });
 
   useEffect(() => {
     if (isOpen) {
-      form.reset({
-        description: "A new awesome task!",
-        tag: "General",
-        priority: "medium",
-        status: "todo",
-      });
+      if (task) {
+        // Editing existing task
+        form.reset({
+          description: task.description,
+          tag: task.tag || "",
+          priority: task.priority,
+          status: task.status,
+        });
+      } else {
+        // Adding new task
+        form.reset({
+          description: "",
+          tag: "",
+          priority: "medium",
+          status: "todo",
+        });
+      }
     }
-  }, [isOpen, form]);
+  }, [isOpen, task, form]);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Add New Task</DialogTitle>
+          <DialogTitle>{task ? "Edit Task" : "Add New Task"}</DialogTitle>
           <DialogDescription>
-            Fill in the details to create a new task. Click create when you're done.
+            {task
+              ? "Edit the details of your task. Click save when you're done."
+              : "Fill in the details to create a new task. Click create when you're done."}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -90,7 +106,7 @@ export function TaskFormDialog({
                 <FormItem>
                   <FormLabel>Description</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., Implement the new feature" {...field} />
+                    <Input placeholder="Enter task description" {...field} autoComplete="off" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -103,7 +119,7 @@ export function TaskFormDialog({
                 <FormItem>
                   <FormLabel>Tag (Optional)</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., Frontend" {...field} />
+                    <Input placeholder="Enter tag (optional)" {...field} autoComplete="off" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -162,7 +178,7 @@ export function TaskFormDialog({
                <DialogClose asChild>
                 <Button type="button" variant="ghost">Cancel</Button>
                </DialogClose>
-               <Button type="submit">Create Task</Button>
+               <Button type="submit">{task ? "Save Changes" : "Create Task"}</Button>
             </DialogFooter>
           </form>
         </Form>

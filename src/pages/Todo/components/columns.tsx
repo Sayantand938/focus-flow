@@ -51,42 +51,59 @@ export const getColumns = (
         enableHiding: false,
       },
       {
-        accessorKey: "id",
-        header: "ID",
-        cell: ({ row }) => <div className="w-[80px] text-muted-foreground">{row.getValue("id")}</div>
-      },
-      {
         accessorKey: "description",
         header: ({ column }) => (
           <Button
             variant="ghost"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           >
-            Task
+            Task Description
             <ArrowUpDown className="ml-2 h-4 w-4" />
           </Button>
         ),
         cell: ({ row }) => {
-          const tag = row.original.tag;
           return (
             <div className="flex flex-col pl-2">
               <span className="font-medium max-w-[300px] truncate">{row.getValue("description")}</span>
-              {tag && <Badge variant="outline" className="mt-1">{tag}</Badge>}
             </div>
           )
         },
       },
       {
         accessorKey: "createdAt",
-        header: "Created",
+        header: ({ column }) => (
+          <Button
+            variant="ghost"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          >
+            Created At
+            <ArrowUpDown className="ml-2 h-4 w-4" />
+          </Button>
+        ),
         cell: ({ row }) => {
             const date = new Date(row.getValue("createdAt"));
             return <span>{format(date, "MMM d, yyyy")}</span>
         }
       },
       {
+        accessorKey: "tag",
+        header: "Tag",
+        cell: ({ row }) => {
+          const tag = row.original.tag;
+          return tag ? <Badge variant="outline">{tag}</Badge> : null;
+        },
+      },
+      {
         accessorKey: "priority",
-        header: "Priority",
+        header: ({ column }) => (
+          <Button
+            variant="ghost"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          >
+            Priority
+            <ArrowUpDown className="ml-2 h-4 w-4" />
+          </Button>
+        ),
         cell: ({ row }) => {
           const priority = priorities.find(
             (p) => p.value === row.getValue("priority")
@@ -105,7 +122,15 @@ export const getColumns = (
       },
       {
         accessorKey: "status",
-        header: "Status",
+        header: ({ column }) => (
+          <Button
+            variant="ghost"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          >
+            Status
+            <ArrowUpDown className="ml-2 h-4 w-4" />
+          </Button>
+        ),
         cell: ({ row }) => {
           const status = statuses.find((s) => s.value === row.getValue("status"));
           if (!status) return null;
@@ -130,10 +155,10 @@ export const getColumns = (
         // Filter columns for mobile view
         return baseColumns.filter(col => {
             if (!('accessorKey' in col)) return true;
-            return !['id', 'createdAt', 'tag'].includes(col.accessorKey as string);
+            return !['id', 'createdAt'].includes(col.accessorKey as string);
         });
     }
 
-    // Hide the tag column on desktop too, since it's now part of the description cell
-    return baseColumns.filter(col => !('accessorKey' in col) || col.accessorKey !== 'tag');
+    // Show all columns on desktop
+    return baseColumns;
 }
