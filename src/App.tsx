@@ -180,9 +180,13 @@ function App() {
   const handleResetData = async (): Promise<void> => {
     if (!user) throw new Error('No user logged in');
     
+    // Hold onto the original data for rollback on failure
+    const originalDailyLogs = [...dailyLogs];
+    const originalTodos = [...todos];
+    
+    // Optimistically clear the UI
     setDailyLogs([]);
     setTodos([]);
-    setActivePage('focus-sheet');
 
     try {
       const batch = writeBatch(db);
@@ -197,6 +201,9 @@ function App() {
       await batch.commit();
     } catch (error) {
       console.error("Error resetting data:", error);
+      // Rollback the UI if the Firestore operation fails
+      setDailyLogs(originalDailyLogs);
+      setTodos(originalTodos);
       throw error;
     }
   };
