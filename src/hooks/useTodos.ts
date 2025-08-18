@@ -1,4 +1,4 @@
-// src/hooks/useTodos.ts
+// D:/Coding/tauri-projects/focus-flow/src/hooks/useTodos.ts
 import { useState, useEffect } from 'react';
 import { User } from 'firebase/auth';
 import { db } from '@/services/firebase';
@@ -187,5 +187,6 @@ export function useTodos(user: User | null) {
         handleSetTaskStatus,
         handleDeleteSelectedTasks,
         handleMarkSelectedTasksDone,
+        setTodos,
     };
 }

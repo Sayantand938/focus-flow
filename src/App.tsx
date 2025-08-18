@@ -1,3 +1,4 @@
+// D:/Coding/tauri-projects/focus-flow/src/App.tsx
 import { useState, useEffect } from "react";
 import { auth, db } from "@/services/firebase";
 import { onAuthStateChanged, User, signOut } from "firebase/auth";
@@ -80,6 +81,7 @@ function App() {
   // Use the custom hook to manage all todo-related state and logic
   const {
     todos,
+    setTodos,
     isLoadingTodos,
     handleAddTask,
     handleUpdateTask,
@@ -187,21 +189,29 @@ function App() {
     if (!user) throw new Error('No user logged in');
     
     const originalSessions = [...sessions];
+    const originalTodos = [...todos];
     setActivePage('focus-sheet');
     setSessions([]);
+    setTodos([]);
 
     try {
-      const logsCollectionRef = collection(db, "users", user.uid, "dailyLogs");
-      const querySnapshot = await getDocs(logsCollectionRef);
-      
-      if (querySnapshot.empty) return;
-
       const batch = writeBatch(db);
-      querySnapshot.docs.forEach(doc => batch.delete(doc.ref));
+
+      // Delete sessions (dailyLogs)
+      const logsCollectionRef = collection(db, "users", user.uid, "dailyLogs");
+      const logsSnapshot = await getDocs(logsCollectionRef);
+      logsSnapshot.docs.forEach(doc => batch.delete(doc.ref));
+
+      // Delete todos
+      const todosCollectionRef = collection(db, "users", user.uid, "todos");
+      const todosSnapshot = await getDocs(todosCollectionRef);
+      todosSnapshot.docs.forEach(doc => batch.delete(doc.ref));
+
       await batch.commit();
     } catch (error) {
       console.error("Error resetting data:", error);
       setSessions(originalSessions);
+      setTodos(originalTodos);
       throw error;
     }
   };
