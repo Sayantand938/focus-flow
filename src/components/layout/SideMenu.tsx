@@ -6,7 +6,8 @@ import {
   User as UserIcon,
   ClipboardList,
   X,
-  ListTodo, // Import the new icon
+  ListTodo,
+  Target, // Import the new icon
 } from "lucide-react";
 import { cn } from "@/utils/utils";
 import { useState } from "react";
@@ -16,7 +17,7 @@ import { User } from "firebase/auth";
 const menuItems = [
   { name: "Focus Sheet", icon: ClipboardList, path: "focus-sheet" },
   { name: "Dashboard", icon: LayoutDashboard, path: "dashboard" },
-  { name: "Todo List", icon: ListTodo, path: "todo-list" }, // Add new menu item
+  { name: "Todo List", icon: ListTodo, path: "todo-list" },
   { name: "Settings", icon: Settings, path: "settings" },
 ];
 
@@ -27,7 +28,6 @@ type SideMenuProps = {
   onSignOut: () => void;
 };
 
-// ... rest of the component remains the same
 function SideMenu({ activePage, setActivePage, user, onSignOut }: SideMenuProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -64,14 +64,8 @@ function SideMenu({ activePage, setActivePage, user, onSignOut }: SideMenuProps)
         {/* Header with Close button for Mobile */}
         <div className="flex items-center justify-between p-2 mb-8">
           <div className="flex items-center gap-3">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              className="size-8 text-primary"
-              fill="currentColor"
-            >
-              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14h2v2h-2v-2zm0-10h2v8h-2V6z"></path>
-            </svg>
+            {/* The new Target icon from Lucide */}
+            <Target className="size-8 text-primary" />
             <h1 className="text-xl font-bold">Focus Flow</h1>
           </div>
           <button
