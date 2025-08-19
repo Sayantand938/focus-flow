@@ -25,7 +25,7 @@ export function AppearanceSettings() {
         Appearance
       </h2>
       <Card>
-        <CardContent className="pt-6">
+        <CardContent>
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="flex-grow">
               <Label htmlFor="theme-select">Theme</Label>
