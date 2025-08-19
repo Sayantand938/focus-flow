@@ -1,5 +1,5 @@
 // src/components/ui/custom-heatmap.tsx
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useRef } from 'react';
 import { StudiedDays } from "@/shared/lib/types";
 import { getHeatmapData, DAILY_GOAL_MINUTES } from "@/shared/lib/utils";
 import {
@@ -28,13 +28,15 @@ interface TooltipState {
   x: number;
   y: number;
   content: string;
+  align: 'center' | 'left' | 'right'; // Added align property
 }
 
 const WEEK_DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 export const CustomHeatmap: React.FC<CustomHeatmapProps> = ({ studiedDays }) => {
-  const [tooltip, setTooltip] = useState<TooltipState>({ visible: false, x: 0, y: 0, content: '' });
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [tooltip, setTooltip] = useState<TooltipState>({ visible: false, x: 0, y: 0, content: '', align: 'center' });
   const isMobile = useIsMobile();
 
   const { grid, monthLabels, dateRange, totalWeeks } = useMemo(() => {
@@ -112,12 +114,33 @@ export const CustomHeatmap: React.FC<CustomHeatmapProps> = ({ studiedDays }) => 
   };
 
   const showTooltip = (event: React.MouseEvent, dayData: { date: Date; studyTime: number }) => {
-    const rect = event.currentTarget.getBoundingClientRect();
+    if (!containerRef.current) return;
+
+    const containerRect = containerRef.current.getBoundingClientRect();
+    const squareRect = event.currentTarget.getBoundingClientRect();
+    
+    const x = squareRect.left - containerRect.left + squareRect.width / 2;
+    const y = squareRect.top - containerRect.top - 8;
+    
+    // Estimate tooltip width to check for overflow.
+    // An average width of 200px (100px half-width) is a safe bet.
+    const TOOLTIP_ESTIMATED_HALF_WIDTH = 100;
+    let align: TooltipState['align'] = 'center';
+
+    if (x - TOOLTIP_ESTIMATED_HALF_WIDTH < 0) {
+      // Too close to the left edge, align tooltip to start at the cursor
+      align = 'left';
+    } else if (x + TOOLTIP_ESTIMATED_HALF_WIDTH > containerRect.width) {
+      // Too close to the right edge, align tooltip to end at the cursor
+      align = 'right';
+    }
+
     setTooltip({
       visible: true,
-      x: rect.left + rect.width / 2,
-      y: rect.top - 8,
-      content: getTooltipText(dayData.date, dayData.studyTime)
+      x,
+      y,
+      content: getTooltipText(dayData.date, dayData.studyTime),
+      align,
     });
   };
 
@@ -125,8 +148,15 @@ export const CustomHeatmap: React.FC<CustomHeatmapProps> = ({ studiedDays }) => 
     setTooltip(prev => ({ ...prev, visible: false }));
   };
 
+  // Map for dynamic alignment classes
+  const alignmentClasses = {
+    center: '-translate-x-1/2',
+    left: 'translate-x-0',
+    right: '-translate-x-full',
+  };
+
   return (
-    <div className="relative">
+    <div className="relative" ref={containerRef}>
       <Card className="h-full flex flex-col">
         <CardHeader className="pb-4">
           <CardTitle className="flex items-center gap-2">
@@ -191,7 +221,7 @@ export const CustomHeatmap: React.FC<CustomHeatmapProps> = ({ studiedDays }) => 
 
       {tooltip.visible && (
         <div
-          className="fixed z-50 px-3 py-2 text-xs bg-popover text-popover-foreground border rounded-md shadow-lg pointer-events-none transform -translate-x-1/2 -translate-y-full"
+          className={`absolute z-50 px-3 py-2 text-xs bg-popover text-popover-foreground border rounded-md shadow-lg pointer-events-none transform -translate-y-full whitespace-nowrap ${alignmentClasses[tooltip.align]}`}
           style={{
             left: tooltip.x,
             top: tooltip.y
