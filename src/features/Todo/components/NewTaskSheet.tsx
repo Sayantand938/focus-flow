@@ -4,27 +4,22 @@ import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/shared/components/ui/button";
-import {
-  Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter
-} from "@/shared/components/ui/sheet";
-import {
-  Form, FormControl, FormField, FormItem, FormLabel, FormMessage,
-} from "@/shared/components/ui/form";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from "@/shared/components/ui/sheet";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/shared/components/ui/form";
 import { Input } from "@/shared/components/ui/input";
 import { Textarea } from "@/shared/components/ui/textarea";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/shared/components/ui/select"; // <-- Import Select components
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/components/ui/select";
+import { DatePicker } from "@/shared/components/ui/datepicker";
 import { Todo } from "@/shared/lib/types";
 import { priorities, statuses } from "./icons";
 import { useTodoStore } from "@/stores/todoStore";
 import { useIsMobile } from "@/shared/hooks/useIsMobile";
-import { Type, FileText, Circle, Signal } from "lucide-react";
 import { cn } from "@/shared/lib/utils";
 
 const taskFormSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters long."),
   description: z.string().optional(),
+  dueDate: z.date().optional(),
   priority: z.enum(["low", "medium", "high"]),
   status: z.enum(["pending", "in-progress", "completed"]),
 });
@@ -47,6 +42,7 @@ export function NewTaskSheet({ isOpen, onClose, task }: NewTaskSheetProps) {
     defaultValues: {
       title: "",
       description: "",
+      dueDate: undefined,
       priority: "medium",
       status: "pending",
     },
@@ -58,6 +54,7 @@ export function NewTaskSheet({ isOpen, onClose, task }: NewTaskSheetProps) {
         form.reset({
           title: task.title,
           description: task.description || "",
+          dueDate: task.dueDate ? new Date(task.dueDate) : undefined,
           priority: task.priority,
           status: task.status,
         });
@@ -65,6 +62,7 @@ export function NewTaskSheet({ isOpen, onClose, task }: NewTaskSheetProps) {
         form.reset({
           title: "",
           description: "",
+          dueDate: undefined,
           priority: "medium",
           status: "pending",
         });
@@ -73,10 +71,15 @@ export function NewTaskSheet({ isOpen, onClose, task }: NewTaskSheetProps) {
   }, [isOpen, task, form]);
 
   const onSubmit = (values: TaskFormValues) => {
+    const taskData = {
+      ...values,
+      dueDate: values.dueDate ? values.dueDate.toISOString() : undefined,
+    };
+
     if (isEditing && task) {
-      updateTask({ id: task.id, ...values });
+      updateTask({ id: task.id, ...taskData });
     } else {
-      addTask(values);
+      addTask(taskData);
     }
     onClose();
   };
@@ -99,46 +102,55 @@ export function NewTaskSheet({ isOpen, onClose, task }: NewTaskSheetProps) {
           <Form {...form}>
             <form className="space-y-6">
               <FormField
-                control={form.control} name="title"
+                control={form.control}
+                name="title"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="flex items-center gap-2"><Type className="size-4" /> Title</FormLabel>
+                    <FormLabel>Title</FormLabel> {/* --- ICON REMOVED --- */}
                     <FormControl><Input placeholder="e.g., Finalize project report" {...field} /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
               <FormField
-                control={form.control} name="description"
+                control={form.control}
+                name="description"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="flex items-center gap-2"><FileText className="size-4" /> Description</FormLabel>
+                    <FormLabel>Description</FormLabel> {/* --- ICON REMOVED --- */}
                     <FormControl><Textarea placeholder="Add more details (optional)" {...field} /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-
-              {/* --- MODIFIED: Status and Priority in one row --- */}
+              <FormField
+                control={form.control}
+                name="dueDate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Due Date</FormLabel> {/* --- ICON REMOVED --- */}
+                    <FormControl>
+                      <DatePicker date={field.value} setDate={field.onChange} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               <div className="grid grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
                   name="status"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="flex items-center gap-2"><Circle className="size-4" /> Status</FormLabel>
+                      <FormLabel>Status</FormLabel> {/* --- ICON REMOVED --- */}
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select a status" />
-                          </SelectTrigger>
+                          <SelectTrigger><SelectValue placeholder="Select a status" /></SelectTrigger>
                         </FormControl>
                         <SelectContent>
                           {statuses.map(s => (
                             <SelectItem key={s.value} value={s.value}>
-                              <div className="flex items-center gap-2">
-                                <s.icon className="size-4 text-muted-foreground" /> {s.label}
-                              </div>
+                              <div className="flex items-center gap-2"><s.icon className="size-4 text-muted-foreground" /> {s.label}</div>
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -152,19 +164,15 @@ export function NewTaskSheet({ isOpen, onClose, task }: NewTaskSheetProps) {
                   name="priority"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="flex items-center gap-2"><Signal className="size-4" /> Priority</FormLabel>
+                      <FormLabel>Priority</FormLabel> {/* --- ICON REMOVED --- */}
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select a priority" />
-                          </SelectTrigger>
+                          <SelectTrigger><SelectValue placeholder="Select a priority" /></SelectTrigger>
                         </FormControl>
                         <SelectContent>
                           {priorities.map(p => (
                             <SelectItem key={p.value} value={p.value}>
-                              <div className="flex items-center gap-2">
-                                <p.icon className="size-4 text-muted-foreground" /> {p.label}
-                              </div>
+                              <div className="flex items-center gap-2"><p.icon className="size-4 text-muted-foreground" /> {p.label}</div>
                             </SelectItem>
                           ))}
                         </SelectContent>

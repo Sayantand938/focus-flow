@@ -29,47 +29,103 @@ export default function FocusSheet() {
     return new Set(todayData?.completedSlots.map(slotToHour).filter(h => h !== null) || []);
   }, [dailyLogs]);
 
+  // Super smooth spring-based animation variants
   const containerVariants: Variants = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
-      transition: { staggerChildren: 0.1 },
+      transition: { 
+        staggerChildren: 0.08, 
+        delayChildren: 0.05 
+      },
     },
   };
 
   const itemVariants: Variants = {
-    hidden: { y: 20, opacity: 0 },
+    hidden: { 
+      y: 16, 
+      opacity: 0,
+      scale: 0.98
+    },
     visible: {
       y: 0,
       opacity: 1,
-      transition: { duration: 0.3, ease: "easeOut" },
+      scale: 1,
+      transition: { 
+        type: "spring", 
+        stiffness: 120, 
+        damping: 18 
+      },
+    },
+  };
+
+  // Grid container with coordinated stagger
+  const gridVariants: Variants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.06,
+        delayChildren: 0.1,
+      },
+    },
+  };
+
+  // Grid item variants with enhanced spring animation
+  const gridItemVariants: Variants = {
+    hidden: { 
+      y: 12, 
+      opacity: 0,
+      scale: 0.98
+    },
+    visible: {
+      y: 0,
+      opacity: 1,
+      scale: 1,
+      transition: { 
+        type: "spring", 
+        stiffness: 140, 
+        damping: 20 
+      },
     },
   };
 
   return (
     <motion.div
-      className="w-full max-w-4xl mx-auto space-y-10"
+      className="w-full space-y-8 scroll-enhanced"
       variants={containerVariants}
       initial="hidden"
       animate="visible"
     >
-      <motion.header variants={itemVariants}>
+      <motion.header 
+        className="space-y-1 mb-6"
+        variants={itemVariants}
+      >
         <h1 className="text-3xl font-bold">Focus Sheet</h1>
         <p className="text-muted-foreground">
           Toggle a switch to log a 30-minute study session for that hour block.
         </p>
       </motion.header>
 
-      {SHIFTS.map((shift) => (
-        <motion.div key={shift.name} variants={itemVariants}>
-          <ShiftCard
-            shift={shift}
-            todaysCompletedHours={todaysCompletedHours}
-            formatHourSlot={formatHourSlot}
-            onToggleSession={toggleSession}
-          />
-        </motion.div>
-      ))}
+      <motion.div 
+        className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8"
+        variants={gridVariants}
+      >
+        {SHIFTS.map((shift) => (
+          <motion.div 
+            key={shift.name} 
+            variants={gridItemVariants}
+            className="w-full"
+          >
+            <ShiftCard
+              shift={shift}
+              todaysCompletedHours={todaysCompletedHours}
+              formatHourSlot={formatHourSlot}
+              onToggleSession={toggleSession}
+            />
+          </motion.div>
+        ))}
+      </motion.div>
     </motion.div>
   );
 }

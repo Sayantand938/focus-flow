@@ -144,14 +144,34 @@
   * {
     @apply border-border outline-ring/50;
   }
+  
+  /* SMOOTH SCROLLING OPTIMIZATIONS */
+  html {
+    scroll-behavior: smooth;
+    /* Hardware acceleration for better performance */
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+  }
+  
   body {
     @apply bg-background text-foreground;
     font-family: 'JetBrains Mono', monospace;
+    /* Optimize text rendering for smooth scrolling */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeSpeed;
+  }
+  
+  /* Optimize all scrollable containers */
+  * {
+    /* Better scroll performance */
+    -webkit-overflow-scrolling: touch; /* iOS momentum scrolling */
+    scroll-behavior: smooth;
   }
 }
 
 @layer utilities {
-  /* Hide Scrollbars Completely */
+  /* Enhanced Scrollbar Hiding with Performance Optimization */
   ::-webkit-scrollbar {
     display: none; /* Chrome, Safari, Opera */
   }
@@ -161,8 +181,35 @@
     -ms-overflow-style: none;  /* IE and Edge */
     scrollbar-width: none;     /* Firefox */
   }
+  
+  /* Smooth scrolling utility classes */
+  .scroll-smooth {
+    scroll-behavior: smooth !important;
+  }
+  
+  .scroll-optimized {
+    /* Create new stacking context for better performance */
+    transform: translateZ(0);
+    will-change: scroll-position;
+    /* Momentum scrolling on iOS */
+    -webkit-overflow-scrolling: touch;
+    /* Smooth scrolling */
+    scroll-behavior: smooth;
+  }
+  
+  /* For containers that need extra smooth scrolling */
+  .scroll-enhanced {
+    /* GPU acceleration */
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    perspective: 1000px;
+    /* Smooth scrolling */
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    /* Optimize for scrolling */
+    will-change: scroll-position;
+  }
 }
-
 
 /* Hide the default browser "show password" icon */
 /* For Chrome, Edge, Safari */

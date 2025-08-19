@@ -14,7 +14,7 @@ import {
 } from "@/shared/components/ui/alert-dialog";
 import { Todo } from "@/shared/lib/types";
 import { getPriorityInfo, getStatusInfo } from './icons';
-import { format } from "date-fns";
+import { format, isPast, isToday } from "date-fns";
 import { Edit, Plus, Trash2, FileText, Info, ListChecks, AlertTriangle } from 'lucide-react';
 import { useTodoStore } from '@/stores/todoStore';
 import { useIsMobile } from '@/shared/hooks/useIsMobile';
@@ -35,6 +35,7 @@ export function TaskDetailSheet({ task, onClose, onEdit }: TaskDetailSheetProps)
 
   const { label: statusLabel } = getStatusInfo(task.status);
   const { label: priorityLabel } = getPriorityInfo(task.priority);
+  const isOverdue = task.dueDate && isPast(new Date(task.dueDate)) && !isToday(new Date(task.dueDate));
 
   const handleAddSubtask = (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,11 +54,10 @@ export function TaskDetailSheet({ task, onClose, onEdit }: TaskDetailSheetProps)
     <Sheet open={!!task} onOpenChange={onClose}>
       <SheetContent
         side={isMobile ? 'bottom' : 'right'}
-        showCloseButton={false} // <-- Hide the 'X' button
+        showCloseButton={false}
         className={cn("w-full p-0 flex flex-col", isMobile ? "h-auto max-h-[90vh] rounded-t-lg" : "sm:max-w-md")}
       >
         <SheetHeader className="p-6 border-b">
-          {/* --- The Edit button has been removed from here --- */}
           <SheetTitle className="pr-4">{task.title}</SheetTitle>
           <div className="flex items-center gap-2 pt-1">
             <Badge variant={task.status as any}>{statusLabel}</Badge>
@@ -66,7 +66,6 @@ export function TaskDetailSheet({ task, onClose, onEdit }: TaskDetailSheetProps)
         </SheetHeader>
         
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
-          {/* ... Description, Details, and Subtasks sections remain the same ... */}
           <div>
             <h4 className="font-semibold mb-2 flex items-center gap-2"><FileText className="size-4" /> Description</h4>
             <p className="text-sm text-muted-foreground">{task.description || "No description provided."}</p>
@@ -74,8 +73,13 @@ export function TaskDetailSheet({ task, onClose, onEdit }: TaskDetailSheetProps)
           <Separator />
           <div>
             <h4 className="font-semibold mb-2 flex items-center gap-2"><Info className="size-4" /> Details</h4>
-            <div className="text-sm text-muted-foreground">
+            <div className="space-y-1 text-sm text-muted-foreground">
               <p>Created: {format(new Date(task.createdAt), "MMMM d, yyyy")}</p>
+              {task.dueDate && (
+                <p className={cn(isOverdue && "text-destructive font-medium")}>
+                  Due: {format(new Date(task.dueDate), "MMMM d, yyyy")}
+                </p>
+              )}
             </div>
           </div>
           <Separator />
@@ -103,14 +107,12 @@ export function TaskDetailSheet({ task, onClose, onEdit }: TaskDetailSheetProps)
         
         <SheetFooter className="p-6 border-t mt-auto flex-row justify-end gap-2">
           <Button variant="outline" onClick={() => onEdit(task)}>
-            <Edit className="mr-2 h-4 w-4" />
-            Edit
+            <Edit className="mr-2 h-4 w-4" /> Edit
           </Button>
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button variant="destructive">
-                <Trash2 className="mr-2 h-4 w-4" />
-                Delete
+                <Trash2 className="mr-2 h-4 w-4" /> Delete
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>

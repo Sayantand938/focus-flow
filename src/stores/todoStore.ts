@@ -21,13 +21,14 @@ export const useTodoStore = create<TodoState>()(
   persist(
     immer(
       (set) => ({
-        todos: [], // Start with an empty array, no mock data
+        todos: [],
 
         addTask: (values) => {
           const newTask: Todo = {
-            id: `task-${Date.now()}`, // Simple unique ID for localStorage
+            id: `task-${Date.now()}`,
             ...values,
             createdAt: new Date().toISOString(),
+            dueDate: values.dueDate, // Handle due date
             isStarred: false,
             subtasks: [],
           };
@@ -103,7 +104,7 @@ export const useTodoStore = create<TodoState>()(
       })
     ),
     {
-      name: 'focus-flow-todo-storage', // The key for localStorage
+      name: 'focus-flow-todo-storage',
     }
   )
 );

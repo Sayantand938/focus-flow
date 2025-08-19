@@ -32,16 +32,12 @@ function transformLogsToStudiedDays(dailyLogs: DailyLog[]): StudiedDays {
   return studiedDays;
 }
 
-// --- FIX START ---
-// Explicitly define the type for the stats object to ensure type safety.
 interface OverallStatsData {
   totalMinutes: number;
   totalDays: number;
   avgDailyMinutes: number;
   avgShiftMinutes: number;
 }
-// --- FIX END ---
-
 
 export function Dashboard() {
   const isMobile = useIsMobile();
@@ -54,13 +50,10 @@ export function Dashboard() {
   const past7DaysProgress = useMemo(() => getPast7DaysProgress(studiedDays), [studiedDays]);
   const streaksAndGoals = useMemo(() => calculateStreaksAndGoals(studiedDays), [studiedDays]);
 
-  // --- FIX START ---
-  // Apply the explicit type to the useMemo hook.
   const overallStats: OverallStatsData = useMemo(
     () => calculateOverallStats(studiedDays), 
     [studiedDays]
   );
-  // --- FIX END ---
 
   const past30DaysProgress = useMemo(() => {
     const data = [];
@@ -80,65 +73,122 @@ export function Dashboard() {
 
   const goalCompletionRate = overallStats.totalDays > 0 ? (streaksAndGoals.perfectDays / overallStats.totalDays) * 100 : 0;
 
-  // --- FIX START ---
-  // Added the missing variant definitions for Framer Motion.
+  // Super smooth spring-based animation variants (matching TodoList style)
   const containerVariants: Variants = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
-      transition: { staggerChildren: 0.1 },
+      transition: { 
+        staggerChildren: 0.08, 
+        delayChildren: 0.05 
+      },
     },
   };
 
   const itemVariants: Variants = {
-    hidden: { y: 20, opacity: 0 },
+    hidden: { 
+      y: 16, 
+      opacity: 0 
+    },
     visible: {
       y: 0,
       opacity: 1,
-      transition: { duration: 0.3, ease: "easeOut" },
+      transition: { 
+        type: "spring", 
+        stiffness: 120, 
+        damping: 18 
+      },
     },
   };
-  // --- FIX END ---
+
+  // Grid items with enhanced spring animation
+  const gridItemVariants: Variants = {
+    hidden: { 
+      y: 12, 
+      opacity: 0,
+      scale: 0.98
+    },
+    visible: {
+      y: 0,
+      opacity: 1,
+      scale: 1,
+      transition: { 
+        type: "spring", 
+        stiffness: 140, 
+        damping: 20 
+      },
+    },
+  };
+
+  // Grid container with coordinated stagger
+  const gridVariants: Variants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.06,
+        delayChildren: 0.1,
+      },
+    },
+  };
 
   if (Object.keys(studiedDays).length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground p-4">
+      <motion.div 
+        className="flex flex-col items-center justify-center h-full text-center text-muted-foreground p-4"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ type: "spring", stiffness: 120, damping: 18 }}
+      >
         <p className="text-lg font-medium">No Data Yet!</p>
         <p className="text-sm sm:text-base">Complete a study session to start seeing your stats.</p>
-      </div>
+      </motion.div>
     );
   }
 
   return (
     <motion.div
-      className="w-full max-w-7xl mx-auto space-y-8"
+      className="w-full space-y-8 scroll-enhanced"
       variants={containerVariants}
       initial="hidden"
       animate="visible"
     >
-      <motion.header variants={itemVariants}>
+      <motion.header 
+        className="space-y-1 mb-6"
+        variants={itemVariants}
+      >
         <h1 className="text-3xl font-bold">Dashboard</h1>
         <p className="text-muted-foreground">Welcome back, {user?.displayName || "User"}!</p>
       </motion.header>
+
       <motion.div variants={itemVariants}>
         <ShiftReport todayShiftStats={todayShiftStats} />
       </motion.div>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <motion.div variants={itemVariants}>
+
+      <motion.div 
+        className="grid grid-cols-1 lg:grid-cols-2 gap-8"
+        variants={gridVariants}
+      >
+        <motion.div variants={gridItemVariants}>
           <StreaksAndGoals streaksAndGoals={streaksAndGoals} goalCompletionRate={goalCompletionRate} />
         </motion.div>
-        <motion.div variants={itemVariants}>
+        <motion.div variants={gridItemVariants}>
           <OverallStats overallStats={overallStats} />
         </motion.div>
-      </div>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <motion.div variants={itemVariants}>
+      </motion.div>
+
+      <motion.div 
+        className="grid grid-cols-1 lg:grid-cols-2 gap-8"
+        variants={gridVariants}
+      >
+        <motion.div variants={gridItemVariants}>
           <WeeklyProgressChart past7DaysProgress={past7DaysProgress} isMobile={isMobile} />
         </motion.div>
-        <motion.div variants={itemVariants}>
+        <motion.div variants={gridItemVariants}>
           <StudyTimeTrend past30DaysProgress={past30DaysProgress} isMobile={isMobile} />
         </motion.div>
-      </div>
+      </motion.div>
+
       <motion.div variants={itemVariants}>
         <CustomHeatmap studiedDays={studiedDays} />
       </motion.div>

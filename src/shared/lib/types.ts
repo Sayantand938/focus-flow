@@ -26,6 +26,7 @@ export interface Todo {
   title: string;
   description?: string;
   createdAt: string;
+  dueDate?: string; // <-- ADDED
   priority: TodoPriority;
   status: TodoStatus;
   isStarred: boolean;

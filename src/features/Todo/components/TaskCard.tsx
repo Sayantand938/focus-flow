@@ -3,8 +3,9 @@ import { Todo } from "@/shared/lib/types";
 import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
 import { Calendar, CheckSquare, Star } from "lucide-react";
-import { format } from 'date-fns';
+import { format, isPast, isToday } from 'date-fns';
 import { getPriorityInfo, getStatusInfo } from './icons';
+import { cn } from "@/shared/lib/utils";
 
 interface TaskCardProps {
   task: Todo;
@@ -13,13 +14,12 @@ interface TaskCardProps {
 }
 
 export function TaskCard({ task, onSelect, onToggleStar }: TaskCardProps) {
-  // --- FIX START ---
-  // Removed unused icon variables from destructuring.
   const { label: statusLabel } = getStatusInfo(task.status);
   const { label: priorityLabel } = getPriorityInfo(task.priority);
-  // --- FIX END ---
   const completedSubtasks = task.subtasks.filter(st => st.isCompleted).length;
   
+  const isOverdue = task.dueDate && isPast(new Date(task.dueDate)) && !isToday(new Date(task.dueDate));
+
   return (
     <div 
       className="border rounded-lg p-4 space-y-3 cursor-pointer hover:bg-muted/50 transition-colors"
@@ -32,7 +32,7 @@ export function TaskCard({ task, onSelect, onToggleStar }: TaskCardProps) {
           size="icon" 
           className="size-7 flex-shrink-0"
           onClick={(e) => {
-            e.stopPropagation(); // Prevent card click
+            e.stopPropagation();
             onToggleStar(task.id);
           }}
         >
@@ -41,14 +41,16 @@ export function TaskCard({ task, onSelect, onToggleStar }: TaskCardProps) {
       </div>
       
       <div className="flex items-center gap-4 text-xs text-muted-foreground">
-        <div className="flex items-center gap-1.5">
-          <Calendar className="size-3.5" />
-          <span>{format(new Date(task.createdAt), "MMM d")}</span>
-        </div>
+        {task.dueDate && (
+          <div className={cn("flex items-center gap-1.5", isOverdue && "text-destructive font-medium")}>
+            <Calendar className="size-3.5" />
+            <span>{format(new Date(task.dueDate), "MMM d")}</span>
+          </div>
+        )}
         {task.subtasks.length > 0 && (
           <div className="flex items-center gap-1.5">
             <CheckSquare className="size-3.5" />
-            <span>Subtasks: {completedSubtasks}/{task.subtasks.length}</span>
+            <span>{completedSubtasks}/{task.subtasks.length}</span>
           </div>
         )}
       </div>
