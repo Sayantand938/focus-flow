@@ -12,13 +12,6 @@ interface OverallStatsProps {
   };
 }
 
-// --- 1. NEW HELPER FUNCTION ---
-/**
- * Converts a total number of minutes into a human-readable format.
- * Example: 125 -> "2 hr 5 min"
- * Example: 120 -> "2 hr"
- * Example: 59  -> "59 mins"
- */
 const formatMinutesToHours = (totalMinutes: number): string => {
   if (totalMinutes < 1) {
     return "0 mins";
@@ -57,7 +50,7 @@ const StatItem = ({
 
 export function OverallStats({ overallStats }: OverallStatsProps) {
   return (
-    <Card>
+    <Card className="h-full">
       <CardHeader className="pb-4">
         <CardTitle className="flex items-center gap-2">
           <TrendingUp className="size-5" />
@@ -65,7 +58,6 @@ export function OverallStats({ overallStats }: OverallStatsProps) {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* --- 2. UPDATED StatItem TO USE THE FORMATTING FUNCTION --- */}
         <StatItem 
           title="Total Studied Time" 
           value={formatMinutesToHours(overallStats.totalMinutes)} 

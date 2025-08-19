@@ -34,7 +34,7 @@ export function StreaksAndGoals({
   goalCompletionRate,
 }: StreaksAndGoalsProps) {
   return (
-    <Card className="flex flex-col">
+    <Card className="flex flex-col h-full">
       <CardHeader className="pb-4">
         <CardTitle className="flex items-center gap-2">
           <Flame className="size-5" />
