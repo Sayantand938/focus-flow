@@ -99,7 +99,8 @@ export function NewTaskSheet({ isOpen, onClose, task }: NewTaskSheetProps) {
         
         <div className="flex-1 overflow-y-auto p-6">
           <Form {...form}>
-            <form className="space-y-6">
+            {/* --- FIX 1: Attach the submit handler to the form itself --- */}
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <FormField
                 control={form.control}
                 name="title"
@@ -181,18 +182,22 @@ export function NewTaskSheet({ isOpen, onClose, task }: NewTaskSheetProps) {
                   )}
                 />
               </div>
+              
+              {/* --- FIX 2: Move the buttons inside the form so "Enter" can trigger them --- */}
+              <SheetFooter className="p-0 pt-6 mt-auto flex flex-row gap-4">
+                {/* The onClick is removed; type="submit" is enough to trigger the form's onSubmit */}
+                <Button type="submit" className="w-3/4">
+                  {isEditing ? "Save Changes" : "Create Task"}
+                </Button>
+                <Button type="button" variant="outline" onClick={onClose} className="w-1/4">
+                  Cancel
+                </Button>
+              </SheetFooter>
             </form>
           </Form>
         </div>
         
-        <SheetFooter className="p-6 border-t mt-auto flex flex-row gap-4">
-          <Button type="submit" onClick={form.handleSubmit(onSubmit)} className="w-3/4">
-            {isEditing ? "Save Changes" : "Create Task"}
-          </Button>
-          <Button variant="outline" onClick={onClose} className="w-1/4">
-            Cancel
-          </Button>
-        </SheetFooter>
+        {/* The SheetFooter is no longer needed here as the buttons are now inside the form */}
       </SheetContent>
     </Sheet>
   );
