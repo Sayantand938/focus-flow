@@ -16,7 +16,7 @@ export default function HourRow({
 }: HourRowProps) {
   return (
     <div className="grid grid-cols-[1fr_auto_auto] md:grid-cols-3 items-center gap-2">
-      <span className="font-mono text-sm sm:text-base whitespace-nowrap">
+      <span className="font-mono text-base sm:text-lg whitespace-nowrap">
         {formatHourSlot(hour)}
       </span>
 
