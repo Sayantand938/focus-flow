@@ -3,7 +3,7 @@ import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import { 
   collection, doc, getDocs, query, writeBatch, 
-  onSnapshot, setDoc, updateDoc, deleteField
+  onSnapshot, setDoc, updateDoc, deleteField, increment
 } from 'firebase/firestore';
 import { db } from '@/shared/services/firebase';
 import { DailyLog, StudiedDays } from '@/shared/lib/types';
@@ -20,7 +20,7 @@ interface LogState {
   toggleSession: (hour: number, isAdding: boolean) => Promise<void>;
   updateSlotTag: (hour: number, tag: string) => Promise<void>;
   resetLogs: () => void;
-  importLogs: (data: { dailyLogs: Record<string, { slots: Record<number, string> }> }) => Promise<void>;
+  importLogs: (data: { dailyLogs: Record<string, { slots: Record<number, string>, totalSlots?: number }> }) => Promise<void>;
 }
 
 export const selectStudiedDays = memoize((state: LogState): StudiedDays => {
@@ -30,12 +30,14 @@ export const selectStudiedDays = memoize((state: LogState): StudiedDays => {
     const date = new Date(parts[0], parts[1] - 1, parts[2]);
     const currentSlots = log.slots || {};
     const completedSlots = Object.keys(currentSlots).map(Number);
+    const totalSlots = log.totalSlots || completedSlots.length; // Fallback for old data
 
     studiedDays[log.id] = {
       date: date,
       slots: currentSlots,
-      completedSlots: completedSlots, // Derived from slots
-      totalMinutes: completedSlots.length * 30, // Derived from slots
+      completedSlots: completedSlots,
+      totalSlots: totalSlots,
+      totalMinutes: totalSlots * 30,
     };
   }
   return studiedDays;
@@ -43,7 +45,8 @@ export const selectStudiedDays = memoize((state: LogState): StudiedDays => {
 
 export const selectTotalXp = memoize((state: LogState): number => {
   return state.dailyLogs.reduce((total, log) => {
-    return total + (Object.keys(log.slots || {}).length * 30);
+    const totalSlots = log.totalSlots || Object.keys(log.slots || {}).length;
+    return total + (totalSlots * 30);
   }, 0);
 });
 
@@ -56,10 +59,14 @@ export const useLogStore = create<LogState>()(immer((set, get) => ({
     const q = query(logsCollectionRef);
 
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
-      const fetchedLogs = querySnapshot.docs.map((doc) => ({
-        id: doc.id,
-        slots: doc.data().slots || {},
-      }));
+      const fetchedLogs = querySnapshot.docs.map((doc) => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          slots: data.slots || {},
+          totalSlots: data.totalSlots || Object.keys(data.slots || {}).length,
+        };
+      });
       set({ dailyLogs: fetchedLogs, isLoadingLogs: false });
     }, (error) => {
       console.error("Failed to listen to dailyLogs:", error);
@@ -77,17 +84,22 @@ export const useLogStore = create<LogState>()(immer((set, get) => ({
     
     const docId = format(new Date(), "yyyy-MM-dd");
     
+    // Optimistic UI update
     set(state => {
       let todayLog = state.dailyLogs.find(log => log.id === docId);
       if (isAdding) {
         if (!todayLog) {
-          todayLog = { id: docId, slots: {} };
+          todayLog = { id: docId, slots: {}, totalSlots: 0 };
           state.dailyLogs.push(todayLog);
         }
-        todayLog.slots[slot] = ""; // Add with a default empty tag
+        if (todayLog.slots[slot] === undefined) { // Only update if not present
+            todayLog.slots[slot] = ""; 
+            todayLog.totalSlots += 1;
+        }
       } else {
-        if (todayLog) {
+        if (todayLog && todayLog.slots[slot] !== undefined) { // Only update if present
           delete todayLog.slots[slot];
+          todayLog.totalSlots = Math.max(0, todayLog.totalSlots - 1);
         }
       }
     });
@@ -95,9 +107,9 @@ export const useLogStore = create<LogState>()(immer((set, get) => ({
     try {
       const logDocRef = doc(db, "users", user.uid, "dailyLogs", docId);
       if (isAdding) {
-        await setDoc(logDocRef, { slots: { [slot]: "" } }, { merge: true });
+        await setDoc(logDocRef, { slots: { [slot]: "" }, totalSlots: increment(1) }, { merge: true });
       } else {
-        await updateDoc(logDocRef, { [`slots.${slot}`]: deleteField() });
+        await updateDoc(logDocRef, { [`slots.${slot}`]: deleteField(), totalSlots: increment(-1) });
       }
     } catch (error) {
       console.error("Failed to sync session:", error);
@@ -112,7 +124,7 @@ export const useLogStore = create<LogState>()(immer((set, get) => ({
     if (slot === null) return;
 
     const docId = format(new Date(), "yyyy-MM-dd");
-    if (!get().dailyLogs.find(log => log.id === docId)?.slots[slot] === undefined) {
+    if (get().dailyLogs.find(log => log.id === docId)?.slots[slot] === undefined) {
       toast.error("Can only tag a completed session.");
       return;
     }
@@ -139,10 +151,14 @@ export const useLogStore = create<LogState>()(immer((set, get) => ({
     const user = useAuthStore.getState().user;
     if (!user) throw new Error('No user logged in');
 
-    const newDailyLogs = Object.entries(data.dailyLogs).map(([id, logData]) => ({ 
-      id, 
-      slots: logData.slots || {} 
-    }));
+    const newDailyLogs = Object.entries(data.dailyLogs).map(([id, logData]) => {
+      const slots = logData.slots || {};
+      return { 
+        id, 
+        slots,
+        totalSlots: logData.totalSlots ?? Object.keys(slots).length
+      };
+    });
     
     set({ dailyLogs: newDailyLogs });
     
@@ -154,7 +170,11 @@ export const useLogStore = create<LogState>()(immer((set, get) => ({
 
     for (const [docId, logData] of Object.entries(data.dailyLogs)) {
       const logDocRef = doc(db, "users", user.uid, "dailyLogs", docId);
-      batch.set(logDocRef, { slots: logData.slots || {} });
+      const slots = logData.slots || {};
+      batch.set(logDocRef, { 
+        slots,
+        totalSlots: logData.totalSlots ?? Object.keys(slots).length
+      });
     }
     
     await batch.commit();

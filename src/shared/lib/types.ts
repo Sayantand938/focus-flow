@@ -4,6 +4,7 @@ export interface DailyLog {
   // A map of slot number to a tag name.
   // The existence of a key implies the slot is completed.
   slots: Record<number, string>;
+  totalSlots: number;
 }
 
 export interface DailyStudyData {
@@ -11,6 +12,7 @@ export interface DailyStudyData {
   // This is derived from the keys of `slots` for convenience in components.
   completedSlots: number[];
   slots: Record<number, string>;
+  totalSlots: number;
   date: Date;
 }
 

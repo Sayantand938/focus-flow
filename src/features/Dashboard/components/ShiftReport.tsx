@@ -1,63 +1,69 @@
-// src/features/Dashboard/components/ShiftReport.tsx
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardHeader,
   CardTitle,
 } from "@/shared/components/ui/card";
 import { Progress } from "@/shared/components/ui/progress";
 import { SHIFTS, SHIFT_GOAL_MINUTES } from "@/shared/lib/utils";
 import { motion } from "framer-motion";
+import { Sunrise, Sunset, Moon, CloudSun } from "lucide-react";
 
 interface ShiftReportProps {
-  // --- FIX ---
-  // Correctly typed as a number array, which is what calculateShiftStats returns.
   todayShiftStats: number[];
-  // --- END FIX ---
 }
+
+const shiftIcons = [Sunrise, CloudSun, Sunset, Moon];
 
 export function ShiftReport({ todayShiftStats }: ShiftReportProps) {
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
-      transition: { staggerChildren: 0.05 },
+      transition: { staggerChildren: 0.1 },
     },
   };
 
   const itemVariants = {
-    hidden: { y: 20, opacity: 0 },
-    visible: { y: 0, opacity: 1 },
+    hidden: { scale: 0.95, opacity: 0 },
+    visible: { scale: 1, opacity: 1 },
   };
 
   return (
     <section>
-      <h2 className="text-xl font-semibold mb-4">Today&apos;s Shift Report</h2>
       <motion.div
-        className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4"
+        className="grid gap-8 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4"
         variants={containerVariants}
         initial="hidden"
         animate="visible"
       >
         {SHIFTS.map((shift, index) => {
-          const durationInMinutes = todayShiftStats[index] || 0; // Added fallback for safety
+          const durationInMinutes = todayShiftStats[index] || 0;
           const progress = (durationInMinutes / SHIFT_GOAL_MINUTES) * 100;
+          const Icon = shiftIcons[index % shiftIcons.length];
+
           return (
             <motion.div key={shift.name} variants={itemVariants}>
               <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">{shift.name}</CardTitle>
-                  <CardDescription>{`${shift.startHour}:00 - ${shift.endHour}:00`}</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <p className="text-2xl font-bold">
-                    {durationInMinutes.toFixed(1)} mins
-                  </p>
-                  <Progress value={progress} />
-                  <p className="text-xs text-muted-foreground">
-                    {progress.toFixed(0)}% of {SHIFT_GOAL_MINUTES}-min goal
-                  </p>
+                <CardContent className="p-6 space-y-4">
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-3">
+                      <Icon className="h-6 w-6 text-primary" />
+                      <CardTitle className="text-lg font-semibold">
+                        {shift.name}
+                      </CardTitle>
+                    </div>
+                    <span className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary">
+                      {`${shift.startHour}:00 - ${shift.endHour}:00`}
+                    </span>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Progress value={progress} className="h-2 rounded-full" />
+                    <div className="flex justify-between text-sm">
+                      <span className="font-medium">{progress.toFixed(0)}%</span>
+                      <span className="text-muted-foreground">{durationInMinutes} mins</span>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
             </motion.div>
