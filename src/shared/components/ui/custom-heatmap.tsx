@@ -99,13 +99,21 @@ export const CustomHeatmap: React.FC<CustomHeatmapProps> = ({ studiedDays }) => 
   }, [studiedDays, isMobile]);
 
   const getColorClass = (minutes: number) => {
-    if (minutes >= DAILY_GOAL_MINUTES) return "bg-amber-400 border-amber-500";
-    if (minutes === 0) return "bg-muted/30 border-muted/50";
-    if (minutes < 15) return "bg-primary/20 border-primary/30";
-    if (minutes < 30) return "bg-primary/40 border-primary/50";
-    if (minutes < 60) return "bg-primary/60 border-primary/70";
-    return "bg-primary/80 border-primary/90";
+    if (minutes === 0) return "bg-muted/30 border-muted/50"; // unchanged gray
+
+    if (minutes >= 480) return "bg-[goldenrod] border-[goldenrod]"; // highlight
+
+    // Custom white shades
+    if (minutes < 60) return "bg-[rgba(255,255,255,1)] border-[rgba(200,200,200,0.4)]";   // pure white
+    if (minutes < 120) return "bg-[rgba(245,245,245,1)] border-[rgba(200,200,200,0.6)]";  // very light
+    if (minutes < 240) return "bg-[rgba(230,230,230,1)] border-[rgba(180,180,180,0.7)]";  // light gray
+    if (minutes < 360) return "bg-[rgba(210,210,210,1)] border-[rgba(150,150,150,0.8)]";  // mid gray
+    if (minutes < 480) return "bg-[rgba(180,180,180,1)] border-[rgba(120,120,120,0.9)]";  // darker
+
+    return "bg-[rgba(150,150,150,1)] border-[rgba(100,100,100,1)]"; // fallback
   };
+
+
 
   const getTooltipText = (date: Date, minutes: number) => {
     const formattedDate = format(date, 'MMMM d, yyyy');
