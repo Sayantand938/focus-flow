@@ -2,7 +2,7 @@
 import { create } from 'zustand';
 import { 
   collection, doc, getDocs, query, setDoc, updateDoc, writeBatch, 
-  arrayUnion, arrayRemove 
+  arrayUnion, arrayRemove, onSnapshot 
 } from 'firebase/firestore';
 import { db } from '@/shared/services/firebase';
 import { DailyLog, Todo, StudiedDays } from '@/shared/lib/types';
@@ -10,14 +10,12 @@ import { format } from 'date-fns';
 import { hourToSlot } from '@/shared/lib/utils';
 import { useAuthStore } from './authStore';
 import { useProgressionStore } from './progressionStore';
-
-// --- This will now be found after `npm install proxy-memoize` ---
 import { memoize } from 'proxy-memoize';
 
 interface LogState {
   dailyLogs: DailyLog[];
   isLoadingLogs: boolean;
-  fetchLogs: (uid: string) => Promise<void>;
+  fetchLogs: (uid: string) => () => void; // Returns an unsubscribe function
   toggleSession: (hour: number, isAdding: boolean) => Promise<void>;
   resetLogs: () => void;
   importLogs: (data: { dailyLogs: Record<string, number[]>, todos: Todo[] }) => Promise<void>;
@@ -40,23 +38,23 @@ export const selectStudiedDays = memoize((state: LogState): StudiedDays => {
 export const useLogStore = create<LogState>((set, get) => ({
   dailyLogs: [],
   isLoadingLogs: true,
-  fetchLogs: async (uid: string) => {
+  fetchLogs: (uid: string) => {
     set({ isLoadingLogs: true });
-    try {
-      const logsCollectionRef = collection(db, "users", uid, "dailyLogs");
-      const q = query(logsCollectionRef);
-      const querySnapshot = await getDocs(q);
+    const logsCollectionRef = collection(db, "users", uid, "dailyLogs");
+    const q = query(logsCollectionRef);
+
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
       const fetchedLogs = querySnapshot.docs.map((doc) => ({
         id: doc.id,
         completedSlots: doc.data().completedSlots || [],
       }));
-      set({ dailyLogs: fetchedLogs });
-    } catch (error) {
-      console.error("Failed to load dailyLogs from Firestore:", error);
-      set({ dailyLogs: [] });
-    } finally {
-      set({ isLoadingLogs: false });
-    }
+      set({ dailyLogs: fetchedLogs, isLoadingLogs: false });
+    }, (error) => {
+      console.error("Failed to listen to dailyLogs:", error);
+      set({ dailyLogs: [], isLoadingLogs: false });
+    });
+
+    return unsubscribe;
   },
   toggleSession: async (hour, isAdding) => {
     const user = useAuthStore.getState().user;
@@ -68,17 +66,16 @@ export const useLogStore = create<LogState>((set, get) => ({
     const docId = format(new Date(), "yyyy-MM-dd");
     const logDocRef = doc(db, "users", user.uid, "dailyLogs", docId);
     
+    // Optimistic UI updates are not strictly necessary with real-time listeners,
+    // but they can make the UI feel even faster, so we'll keep them.
     const originalLogs = [...get().dailyLogs];
 
-    // Optimistic update
     set(state => {
       const newLogs = [...state.dailyLogs];
       let todayLog = newLogs.find(log => log.id === docId);
       if (isAdding) {
         if (todayLog) {
-          if (!todayLog.completedSlots.includes(slot)) {
-            todayLog.completedSlots.push(slot);
-          }
+          if (!todayLog.completedSlots.includes(slot)) todayLog.completedSlots.push(slot);
         } else {
           newLogs.push({ id: docId, completedSlots: [slot] });
         }
@@ -99,7 +96,7 @@ export const useLogStore = create<LogState>((set, get) => ({
         useProgressionStore.getState().addXp(-30);
       }
     } catch (error) {
-      console.error("Failed to update Firestore, rolling back:", error);
+      console.error("Failed to update Firestore, rolling back UI:", error);
       set({ dailyLogs: originalLogs }); 
     }
   },

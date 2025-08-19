@@ -6,14 +6,15 @@ import { Todo, Subtask } from '@/shared/lib/types';
 import toast from 'react-hot-toast';
 import { db } from '@/shared/services/firebase';
 import { 
-  collection, doc, getDocs, writeBatch, setDoc, updateDoc, deleteDoc, query, orderBy, Timestamp 
+  collection, doc, getDocs, writeBatch, setDoc, updateDoc, deleteDoc, 
+  query, orderBy, Timestamp, onSnapshot 
 } from 'firebase/firestore';
 import { useAuthStore } from './authStore';
 
 interface TodoState {
   todos: Todo[];
   isLoadingTodos: boolean;
-  fetchTodos: (uid: string) => Promise<void>;
+  fetchTodos: (uid: string) => () => void; // Returns an unsubscribe function
   addTask: (values: Omit<Todo, 'id' | 'createdAt' | 'isStarred' | 'subtasks'>) => Promise<void>;
   updateTask: (updatedTask: Partial<Todo> & { id: string }) => Promise<void>;
   deleteTask: (id: string) => Promise<void>;
@@ -31,14 +32,12 @@ export const useTodoStore = create<TodoState>()(
       (set, get) => ({
         todos: [],
         isLoadingTodos: true,
-
-        fetchTodos: async (uid) => {
+        fetchTodos: (uid: string) => {
           set({ isLoadingTodos: true });
-          try {
-            const todosCollectionRef = collection(db, "users", uid, "todos");
-            // --- FIX 1: Fetch tasks in ascending order (oldest first) ---
-            const q = query(todosCollectionRef, orderBy("createdAt", "asc"));
-            const querySnapshot = await getDocs(q);
+          const todosCollectionRef = collection(db, "users", uid, "todos");
+          const q = query(todosCollectionRef, orderBy("createdAt", "asc"));
+          
+          const unsubscribe = onSnapshot(q, (querySnapshot) => {
             const fetchedTodos = querySnapshot.docs.map(doc => {
               const data = doc.data();
               return {
@@ -49,12 +48,13 @@ export const useTodoStore = create<TodoState>()(
               } as Todo;
             });
             set({ todos: fetchedTodos, isLoadingTodos: false });
-          } catch (error) {
-            console.error("Failed to load todos from Firestore:", error);
+          }, (error) => {
+            console.error("Failed to listen to todos:", error);
             set({ todos: [], isLoadingTodos: false });
-          }
-        },
+          });
 
+          return unsubscribe;
+        },
         addTask: async (values) => {
           const user = useAuthStore.getState().user;
           if (!user) {
@@ -63,20 +63,14 @@ export const useTodoStore = create<TodoState>()(
           }
           
           const newDocRef = doc(collection(db, "users", user.uid, "todos"));
-          const newTaskId = newDocRef.id;
-
           const newTask: Todo = {
-            id: newTaskId,
+            id: newDocRef.id,
             ...values,
             createdAt: new Date().toISOString(),
             dueDate: values.dueDate,
             isStarred: false,
             subtasks: [],
           };
-
-          // --- FIX 2: Add the new task to the END of the array ---
-          set((state) => { state.todos.push(newTask); });
-          toast.success('Task added successfully!');
 
           try {
             const dataToSave = {
@@ -90,23 +84,15 @@ export const useTodoStore = create<TodoState>()(
               subtasks: [],
             };
             await setDoc(newDocRef, dataToSave);
+            toast.success('Task added successfully!');
           } catch (error) {
             console.error("Failed to sync new task to Firestore:", error);
             toast.error("Failed to save task to cloud.");
-            set(state => { state.todos = state.todos.filter(t => t.id !== newTaskId); });
           }
         },
-
         updateTask: async (updatedTask) => {
           const user = useAuthStore.getState().user;
           if (!user) return;
-
-          const originalTodos = JSON.parse(JSON.stringify(get().todos));
-          
-          set((state) => {
-            const task = state.todos.find(t => t.id === updatedTask.id);
-            if (task) Object.assign(task, updatedTask);
-          });
           
           try {
             const { id, ...dataToUpdate } = updatedTask;
@@ -119,103 +105,55 @@ export const useTodoStore = create<TodoState>()(
           } catch (error) {
              console.error("Failed to sync task update to Firestore:", error);
              toast.error("Failed to sync task update.");
-             set({ todos: originalTodos });
           }
         },
-
         deleteTask: async (id) => {
           const user = useAuthStore.getState().user;
           if (!user) return;
-          
-          const originalTodos = [...get().todos];
-          
-          set((state) => {
-            const taskIndex = state.todos.findIndex(t => t.id === id);
-            if (taskIndex !== -1) {
-              state.todos.splice(taskIndex, 1);
-            }
-          });
-          toast.success('Task deleted.');
 
           try {
             await deleteDoc(doc(db, "users", user.uid, "todos", id));
+            toast.success('Task deleted.');
           } catch (error) {
              console.error("Failed to delete task from Firestore:", error);
              toast.error("Failed to sync deletion.");
-             set({ todos: originalTodos });
           }
         },
-
         toggleStar: async (id) => {
           const task = get().todos.find(t => t.id === id);
           if (task) {
             get().updateTask({ id, isStarred: !task.isStarred });
           }
         },
-
         addSubtask: async (taskId, text) => {
-          const newSubtask: Subtask = { id: `sub-${Date.now()}`, text, isCompleted: false };
-          const originalTodos = JSON.parse(JSON.stringify(get().todos));
-
-          set(state => {
-            const task = state.todos.find(t => t.id === taskId);
-            if (task) {
-              task.subtasks.push(newSubtask);
-            }
-          });
-
-          const taskToUpdate = get().todos.find(t => t.id === taskId);
-          if (taskToUpdate) {
-            get().updateTask({ id: taskId, subtasks: taskToUpdate.subtasks });
-          } else {
-            set({ todos: originalTodos });
-          }
-        },
-
-        toggleSubtask: async (taskId, subtaskId) => {
-          const originalTodos = JSON.parse(JSON.stringify(get().todos));
-
-          set(state => {
-            const task = state.todos.find(t => t.id === taskId);
-            const subtask = task?.subtasks.find(st => st.id === subtaskId);
-            if (subtask) {
-              subtask.isCompleted = !subtask.isCompleted;
-            }
-          });
-
-          const taskToUpdate = get().todos.find(t => t.id === taskId);
-          if (taskToUpdate) {
-            get().updateTask({ id: taskId, subtasks: taskToUpdate.subtasks });
-          } else {
-            set({ todos: originalTodos });
-          }
-        },
-
-        deleteSubtask: async (taskId, subtaskId) => {
-          const originalTodos = JSON.parse(JSON.stringify(get().todos));
+          const task = get().todos.find(t => t.id === taskId);
+          if (!task) return;
           
-          set(state => {
-            const task = state.todos.find(t => t.id === taskId);
-            if (task) {
-              const subtaskIndex = task.subtasks.findIndex(st => st.id === subtaskId);
-              if (subtaskIndex > -1) {
-                task.subtasks.splice(subtaskIndex, 1);
-              }
-            }
-          });
-
-          const taskToUpdate = get().todos.find(t => t.id === taskId);
-          if (taskToUpdate) {
-            get().updateTask({ id: taskId, subtasks: taskToUpdate.subtasks });
-          } else {
-            set({ todos: originalTodos });
-          }
+          const newSubtask: Subtask = { id: `sub-${Date.now()}`, text, isCompleted: false };
+          const updatedSubtasks = [...task.subtasks, newSubtask];
+          get().updateTask({ id: taskId, subtasks: updatedSubtasks });
         },
-        
+        toggleSubtask: async (taskId, subtaskId) => {
+          const task = get().todos.find(t => t.id === taskId);
+          if (!task) return;
+          
+          const updatedSubtasks = task.subtasks.map(subtask => 
+            subtask.id === subtaskId 
+              ? { ...subtask, isCompleted: !subtask.isCompleted } 
+              : subtask
+          );
+          get().updateTask({ id: taskId, subtasks: updatedSubtasks });
+        },
+        deleteSubtask: async (taskId, subtaskId) => {
+          const task = get().todos.find(t => t.id === taskId);
+          if (!task) return;
+          
+          const updatedSubtasks = task.subtasks.filter(subtask => subtask.id !== subtaskId);
+          get().updateTask({ id: taskId, subtasks: updatedSubtasks });
+        },
         resetTodos: () => {
           set({ todos: [], isLoadingTodos: false });
         },
-
         importTodos: async (importedTodos) => {
             const user = useAuthStore.getState().user;
             if (!user) throw new Error("User not logged in for import.");
