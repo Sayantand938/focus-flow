@@ -1,12 +1,11 @@
 // src/stores/authStore.ts
 import { create } from 'zustand';
 import { onAuthStateChanged, signOut, User } from 'firebase/auth';
-// --- onSnapshot REMOVED FROM THIS IMPORT ---
 import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { auth, db } from '@/shared/services/firebase';
 import { useLogStore } from './logStore';
 import { useTodoStore } from './todoStore';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner'; // <-- UPDATED IMPORT
 
 let firestoreUnsubscribers: (() => void)[] = [];
 

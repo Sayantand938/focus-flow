@@ -3,7 +3,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
 import { Todo, Subtask } from '@/shared/lib/types';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner'; // <-- UPDATED IMPORT
 import { db } from '@/shared/services/firebase';
 import { 
   collection, doc, getDocs, writeBatch, setDoc, updateDoc, deleteDoc, 
@@ -14,7 +14,7 @@ import { useAuthStore } from './authStore';
 interface TodoState {
   todos: Todo[];
   isLoadingTodos: boolean;
-  fetchTodos: (uid: string) => () => void; // Returns an unsubscribe function
+  fetchTodos: (uid: string) => () => void;
   addTask: (values: Omit<Todo, 'id' | 'createdAt' | 'isStarred' | 'subtasks'>) => Promise<void>;
   updateTask: (updatedTask: Partial<Todo> & { id: string }) => Promise<void>;
   deleteTask: (id: string) => Promise<void>;

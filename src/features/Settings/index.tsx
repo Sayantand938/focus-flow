@@ -12,7 +12,7 @@ import { useTodoStore } from "@/stores/todoStore";
 import { useAuthStore } from "@/stores/authStore";
 import { db } from "@/shared/services/firebase";
 import { collection, getDocs, writeBatch } from "firebase/firestore";
-import toast from "react-hot-toast";
+import { toast } from "sonner"; // <-- UPDATED IMPORT
 
 type ImportData = {
   dailyLogs: Record<string, {
@@ -27,17 +27,14 @@ function Settings() {
   const { todos, importTodos } = useTodoStore();
   const user = useAuthStore((state) => state.user);
   
-  // UI state for loading indicators is local to this component
   const [isResetting, setIsResetting] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [isOpeningFile, setIsOpeningFile] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   
-  // State for controlling dialog visibility
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   
-  // State to hold data from an imported file before confirmation
   const [pendingImportData, setPendingImportData] = useState<ImportData | null>(null);
   
   const handleResetData = async () => {
@@ -60,7 +57,7 @@ function Settings() {
 
     toast.promise(promise, {
         loading: 'Resetting all data...',
-        success: 'All data has been permanently deleted.',
+        success: 'All data successfully reset.',
         error: 'Failed to reset data.',
     });
 
@@ -128,10 +125,11 @@ function Settings() {
 
       if (!selectedPath) return;
 
-      const content = await readTextFile(selectedPath);
+      const content = await readTextFile(selectedPath as string);
       const data = JSON.parse(content) as ImportData;
 
       if (!data.dailyLogs || !data.todos || typeof data.dailyLogs !== 'object' || !Array.isArray(data.todos)) {
+        toast.error("Invalid import file format.");
         throw new Error("Invalid import file format.");
       }
       

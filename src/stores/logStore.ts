@@ -11,7 +11,7 @@ import { format } from 'date-fns';
 import { hourToSlot } from '@/shared/lib/utils';
 import { useAuthStore } from './authStore';
 import { memoize } from 'proxy-memoize';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner'; // <-- UPDATED IMPORT
 
 interface LogState {
   dailyLogs: DailyLog[];
@@ -30,7 +30,7 @@ export const selectStudiedDays = memoize((state: LogState): StudiedDays => {
     const date = new Date(parts[0], parts[1] - 1, parts[2]);
     const currentSlots = log.slots || {};
     const completedSlots = Object.keys(currentSlots).map(Number);
-    const totalSlots = log.totalSlots || completedSlots.length; // Fallback for old data
+    const totalSlots = log.totalSlots || completedSlots.length;
 
     studiedDays[log.id] = {
       date: date,
@@ -84,7 +84,6 @@ export const useLogStore = create<LogState>()(immer((set, get) => ({
     
     const docId = format(new Date(), "yyyy-MM-dd");
     
-    // Optimistic UI update
     set(state => {
       let todayLog = state.dailyLogs.find(log => log.id === docId);
       if (isAdding) {
@@ -92,12 +91,12 @@ export const useLogStore = create<LogState>()(immer((set, get) => ({
           todayLog = { id: docId, slots: {}, totalSlots: 0 };
           state.dailyLogs.push(todayLog);
         }
-        if (todayLog.slots[slot] === undefined) { // Only update if not present
+        if (todayLog.slots[slot] === undefined) {
             todayLog.slots[slot] = ""; 
             todayLog.totalSlots += 1;
         }
       } else {
-        if (todayLog && todayLog.slots[slot] !== undefined) { // Only update if present
+        if (todayLog && todayLog.slots[slot] !== undefined) {
           delete todayLog.slots[slot];
           todayLog.totalSlots = Math.max(0, todayLog.totalSlots - 1);
         }
