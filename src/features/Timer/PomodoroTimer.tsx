@@ -1,61 +1,144 @@
 // src/features/Timer/PomodoroTimer.tsx
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import TimerDisplay from './components/TimerDisplay';
 import TimerControls from './components/TimerControls';
 
 const WORK_DURATION = 30 * 60; // 30 minutes
+const STORAGE_KEYS = {
+  TIME: 'pomodoro-time',
+  IS_ACTIVE: 'pomodoro-isActive',
+  TIMESTAMP: 'pomodoro-timestamp'
+} as const;
 
-// Helper to get initial timer value from localStorage
-const getInitialTime = () => {
-  const savedTime = localStorage.getItem('pomodoro-time');
-  if (savedTime) {
+const getInitialState = () => {
+  const savedTime = localStorage.getItem(STORAGE_KEYS.TIME);
+  const savedTimestamp = localStorage.getItem(STORAGE_KEYS.TIMESTAMP);
+  const savedIsActive = localStorage.getItem(STORAGE_KEYS.IS_ACTIVE);
+
+  if (savedTime && savedTimestamp) {
     const time = parseInt(savedTime, 10);
-    return time > 0 && time <= WORK_DURATION ? time : WORK_DURATION;
+    const timestamp = parseInt(savedTimestamp, 10);
+    const wasActive = savedIsActive === 'true';
+    
+    if (wasActive) {
+      // Timer was running when page closed, calculate elapsed time
+      const elapsedSeconds = Math.floor((Date.now() - timestamp) / 1000);
+      const newTime = time - elapsedSeconds;
+      return {
+        timeLeft: newTime > 0 ? newTime : 0,
+        isActive: newTime > 0 // Auto-pause if time ran out
+      };
+    } else {
+      // Timer was paused, return saved time without elapsed calculation
+      return {
+        timeLeft: time > 0 ? time : WORK_DURATION,
+        isActive: false
+      };
+    }
   }
-  return WORK_DURATION;
+  
+  return {
+    timeLeft: WORK_DURATION,
+    isActive: false
+  };
 };
 
-// Helper to get initial timer status from localStorage
-const getInitialIsActive = () => {
-    const savedIsActive = localStorage.getItem('pomodoro-isActive');
-    return savedIsActive === 'true';
-}
-
 export default function PomodoroTimer() {
-  const [timeLeft, setTimeLeft] = useState(getInitialTime);
-  const [isTimerActive, setIsTimerActive] = useState(getInitialIsActive);
+  const initialState = getInitialState();
+  const [timeLeft, setTimeLeft] = useState(initialState.timeLeft);
+  const [isTimerActive, setIsTimerActive] = useState(initialState.isActive);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Save state to localStorage
+  const saveState = useCallback((time: number, active: boolean) => {
+    localStorage.setItem(STORAGE_KEYS.TIME, String(time));
+    localStorage.setItem(STORAGE_KEYS.IS_ACTIVE, String(active));
+    localStorage.setItem(STORAGE_KEYS.TIMESTAMP, String(Date.now()));
+  }, []);
+
+  // Clear localStorage
+  const clearState = useCallback(() => {
+    localStorage.removeItem(STORAGE_KEYS.TIME);
+    localStorage.removeItem(STORAGE_KEYS.IS_ACTIVE);
+    localStorage.removeItem(STORAGE_KEYS.TIMESTAMP);
+  }, []);
+
+  // Main timer effect
   useEffect(() => {
-    localStorage.setItem('pomodoro-time', String(timeLeft));
-    localStorage.setItem('pomodoro-isActive', String(isTimerActive));
+    // Clear any existing interval
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
 
     if (isTimerActive && timeLeft > 0) {
       intervalRef.current = setInterval(() => {
-        setTimeLeft((prevTime) => prevTime - 1);
+        setTimeLeft((prevTime) => {
+          const newTime = prevTime - 1;
+          if (newTime <= 0) {
+            setIsTimerActive(false);
+            return 0;
+          }
+          return newTime;
+        });
       }, 1000);
-    } else if (!isTimerActive || timeLeft === 0) {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-      if (timeLeft === 0) {
-        setIsTimerActive(false);
-      }
     }
     
     return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
     };
   }, [isTimerActive, timeLeft]);
 
-  const handlePlayPause = () => {
-    setIsTimerActive(!isTimerActive);
-  };
+  // Save state whenever it changes
+  useEffect(() => {
+    saveState(timeLeft, isTimerActive);
+  }, [timeLeft, isTimerActive, saveState]);
 
-  const handleReset = () => {
-    if (intervalRef.current) clearInterval(intervalRef.current);
+  // Handle page unload
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      saveState(timeLeft, isTimerActive);
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [timeLeft, isTimerActive, saveState]);
+
+  // Timer completed effect
+  useEffect(() => {
+    if (timeLeft === 0 && isTimerActive) {
+      setIsTimerActive(false);
+      // Optional: Add notification or sound here
+      console.log('Pomodoro session completed!');
+    }
+  }, [timeLeft, isTimerActive]);
+
+  const handlePlayPause = useCallback(() => {
+    if (timeLeft === 0) {
+      // If timer is at 0, reset it before starting
+      setTimeLeft(WORK_DURATION);
+      setIsTimerActive(true);
+    } else {
+      setIsTimerActive(prev => !prev);
+    }
+  }, [timeLeft]);
+
+  const handleReset = useCallback(() => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
     setIsTimerActive(false);
     setTimeLeft(WORK_DURATION);
-  };
+    clearState();
+  }, [clearState]);
   
   return (
     <div className="w-full flex-1 flex flex-col items-center justify-center text-center">
@@ -76,6 +159,14 @@ export default function PomodoroTimer() {
           />
         </CardContent>
       </Card>
+      
+      {timeLeft === 0 && (
+        <div className="mt-4 p-4 bg-green-100 dark:bg-green-900 rounded-lg">
+          <p className="text-green-800 dark:text-green-200 font-medium">
+            🎉 Pomodoro session completed! Great work!
+          </p>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,7 +1,7 @@
-// src/components/CustomHeatmap.tsx
+// src/components/ui/custom-heatmap.tsx
 import React, { useMemo, useState } from 'react';
 import { StudiedDays } from '@/utils/types';
-import { getHeatmapData } from '@/utils/utils';
+import { getHeatmapData, DAILY_GOAL_MINUTES } from '@/utils/utils';
 import {
   Card,
   CardContent,
@@ -37,7 +37,7 @@ export const CustomHeatmap: React.FC<CustomHeatmapProps> = ({ studiedDays }) => 
   const [tooltip, setTooltip] = useState<TooltipState>({ visible: false, x: 0, y: 0, content: '' });
   const isMobile = useIsMobile();
 
-  const { grid, monthLabels, dateRange } = useMemo(() => {
+  const { grid, monthLabels, dateRange, totalWeeks } = useMemo(() => {
     const heatmapData = getHeatmapData(studiedDays);
     const dataMap = new Map(heatmapData.map(d => [d.date, d.count]));
 
@@ -47,13 +47,16 @@ export const CustomHeatmap: React.FC<CustomHeatmapProps> = ({ studiedDays }) => 
     let startDate: Date;
     
     if (isMobile) {
+      // Show approx. 6 months on mobile
       startDate = subDays(endDate, 181);
     } else {
+      // Show a rolling year on desktop
       const lastYear = new Date(today);
       lastYear.setFullYear(today.getFullYear() - 1);
       startDate = addDays(lastYear, 1);
     }
     
+    // Align the grid start date to the beginning of the week (Sunday)
     const gridStartDate = startOfWeek(startDate, { weekStartsOn: 0 });
     const actualNumWeeks = differenceInCalendarWeeks(endDate, gridStartDate, { weekStartsOn: 0 }) + 1;
     
@@ -74,6 +77,7 @@ export const CustomHeatmap: React.FC<CustomHeatmapProps> = ({ studiedDays }) => 
       
       grid.push(week);
 
+      // Check if the month has changed to add a label
       const firstDayOfWeek = week[0].date;
       if (firstDayOfWeek.getMonth() !== currentMonth) {
         currentMonth = firstDayOfWeek.getMonth();
@@ -87,11 +91,13 @@ export const CustomHeatmap: React.FC<CustomHeatmapProps> = ({ studiedDays }) => 
     return { 
       grid, 
       monthLabels, 
-      dateRange: { start: startDate, end: endDate }
+      dateRange: { start: startDate, end: endDate },
+      totalWeeks: actualNumWeeks
     };
   }, [studiedDays, isMobile]);
 
   const getColorClass = (minutes: number) => {
+    if (minutes >= DAILY_GOAL_MINUTES) return "bg-amber-400 border-amber-500";
     if (minutes === 0) return "bg-muted/30 border-muted/50";
     if (minutes < 15) return "bg-primary/20 border-primary/30";
     if (minutes < 30) return "bg-primary/40 border-primary/50";
@@ -151,7 +157,7 @@ export const CustomHeatmap: React.FC<CustomHeatmapProps> = ({ studiedDays }) => 
                   <div
                     key={`${label}-${weekIndex}`}
                     className="text-xs text-muted-foreground absolute"
-                    style={{ left: `${(weekIndex / (isMobile ? 26 : 52)) * 100}%` }}
+                    style={{ left: `${(weekIndex / totalWeeks) * 100}%` }}
                   >
                     {label}
                   </div>
@@ -179,18 +185,6 @@ export const CustomHeatmap: React.FC<CustomHeatmapProps> = ({ studiedDays }) => 
                 ))}
               </div>
             </div>
-          </div>
-
-          <div className="flex items-center justify-end mt-4 text-xs text-muted-foreground gap-2">
-            <span>Less</span>
-            <div className="flex items-center gap-1">
-              <div className="w-3 h-3 rounded-sm bg-muted/30 border border-muted/50"></div>
-              <div className="w-3 h-3 rounded-sm bg-primary/20 border border-primary/30"></div>
-              <div className="w-3 h-3 rounded-sm bg-primary/40 border border-primary/50"></div>
-              <div className="w-3 h-3 rounded-sm bg-primary/60 border border-primary/70"></div>
-              <div className="w-3 h-3 rounded-sm bg-primary/80 border border-primary/90"></div>
-            </div>
-            <span>More</span>
           </div>
         </CardContent>
       </Card>
