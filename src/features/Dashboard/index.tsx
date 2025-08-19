@@ -18,29 +18,20 @@ import { useAuthStore } from "@/stores/authStore";
 import { useLogStore, selectStudiedDays, selectTotalXp } from "@/stores/logStore";
 import { StudiedDays } from "@/shared/lib/types";
 
-interface OverallStatsData {
-  totalMinutes: number;
-  totalDays: number;
-  avgDailyMinutes: number;
-  avgShiftMinutes: number;
-}
-
 export function Dashboard() {
   const isMobile = useIsMobile();
   const user = useAuthStore((state) => state.user);
 
   // Get derived state directly from the logStore's selectors.
-  // This ensures data is always consistent and efficiently calculated.
   const studiedDays = useLogStore(selectStudiedDays) as StudiedDays;
   const totalXp = useLogStore(selectTotalXp);
 
-  // useMemo is used to prevent re-calculating these stats on every render,
-  // they only re-run when the underlying `studiedDays` or `totalXp` change.
+  // useMemo prevents re-calculating these stats on every render
   const todayShiftStats = useMemo(() => calculateShiftStats(studiedDays, new Date()), [studiedDays]);
   const past7DaysProgress = useMemo(() => getPast7DaysProgress(studiedDays), [studiedDays]);
   const streaksAndGoals = useMemo(() => calculateStreaksAndGoals(studiedDays), [studiedDays]);
   const progressionInfo = useMemo(() => calculateProgression(totalXp), [totalXp]);
-  const overallStats: OverallStatsData = useMemo(() => calculateOverallStats(studiedDays), [studiedDays]);
+  const overallStats = useMemo(() => calculateOverallStats(studiedDays), [studiedDays]);
 
   const past30DaysProgress = useMemo(() => {
     const data = [];
@@ -117,7 +108,6 @@ export function Dashboard() {
     },
   };
 
-  // Display a message if there is no study data yet
   if (Object.keys(studiedDays).length === 0) {
     return (
       <motion.div 

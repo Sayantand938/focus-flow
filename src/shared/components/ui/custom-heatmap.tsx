@@ -99,21 +99,15 @@ export const CustomHeatmap: React.FC<CustomHeatmapProps> = ({ studiedDays }) => 
   }, [studiedDays, isMobile]);
 
   const getColorClass = (minutes: number) => {
-    if (minutes === 0) return "bg-muted/30 border-muted/50"; // unchanged gray
-
-    if (minutes >= 480) return "bg-[goldenrod] border-[goldenrod]"; // highlight
-
-    // Custom white shades
-    if (minutes < 60) return "bg-[rgba(255,255,255,1)] border-[rgba(200,200,200,0.4)]";   // pure white
-    if (minutes < 120) return "bg-[rgba(245,245,245,1)] border-[rgba(200,200,200,0.6)]";  // very light
-    if (minutes < 240) return "bg-[rgba(230,230,230,1)] border-[rgba(180,180,180,0.7)]";  // light gray
-    if (minutes < 360) return "bg-[rgba(210,210,210,1)] border-[rgba(150,150,150,0.8)]";  // mid gray
-    if (minutes < 480) return "bg-[rgba(180,180,180,1)] border-[rgba(120,120,120,0.9)]";  // darker
-
-    return "bg-[rgba(150,150,150,1)] border-[rgba(100,100,100,1)]"; // fallback
+    // Use CSS variables for theme-aware colors
+    if (minutes === 0) return "bg-[var(--color-heatmap-empty)] border-transparent";
+    if (minutes >= DAILY_GOAL_MINUTES) return "bg-[var(--color-heatmap-perfect)] border-transparent";
+    if (minutes < 120) return "bg-[var(--color-heatmap-1)] border-transparent";
+    if (minutes < 240) return "bg-[var(--color-heatmap-2)] border-transparent";
+    if (minutes < 360) return "bg-[var(--color-heatmap-3)] border-transparent";
+    // For minutes >= 360 and < 480
+    return "bg-[var(--color-heatmap-4)] border-transparent";
   };
-
-
 
   const getTooltipText = (date: Date, minutes: number) => {
     const formattedDate = format(date, 'MMMM d, yyyy');
@@ -130,16 +124,12 @@ export const CustomHeatmap: React.FC<CustomHeatmapProps> = ({ studiedDays }) => 
     const x = squareRect.left - containerRect.left + squareRect.width / 2;
     const y = squareRect.top - containerRect.top - 8;
     
-    // Estimate tooltip width to check for overflow.
-    // An average width of 200px (100px half-width) is a safe bet.
     const TOOLTIP_ESTIMATED_HALF_WIDTH = 100;
     let align: TooltipState['align'] = 'center';
 
     if (x - TOOLTIP_ESTIMATED_HALF_WIDTH < 0) {
-      // Too close to the left edge, align tooltip to start at the cursor
       align = 'left';
     } else if (x + TOOLTIP_ESTIMATED_HALF_WIDTH > containerRect.width) {
-      // Too close to the right edge, align tooltip to end at the cursor
       align = 'right';
     }
 
@@ -156,7 +146,6 @@ export const CustomHeatmap: React.FC<CustomHeatmapProps> = ({ studiedDays }) => 
     setTooltip(prev => ({ ...prev, visible: false }));
   };
 
-  // Map for dynamic alignment classes
   const alignmentClasses = {
     center: '-translate-x-1/2',
     left: 'translate-x-0',

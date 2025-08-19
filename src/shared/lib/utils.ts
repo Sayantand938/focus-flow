@@ -15,6 +15,30 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 // -----------------
+// Formatting Helpers
+// -----------------
+
+/**
+ * Formats large XP numbers for display.
+ * - Below 10,000, it shows the full number with commas.
+ * - At 10,000 and above, it shows a shorter version with a "k" suffix (e.g., 10.5k).
+ * @param xp The raw XP number.
+ * @returns A formatted string for display.
+ */
+export const formatXp = (xp: number): string => {
+  const value = Math.floor(xp);
+  if (value < 10000) {
+    // Use locale string to add commas for better readability (e.g., 9,999)
+    return value.toLocaleString();
+  }
+  // For numbers >= 10,000, convert to "k" format
+  // .replace(/\.0$/, '') removes the decimal if it's .0 (e.g., 10.0k -> 10k)
+  const formatted = (value / 1000).toFixed(1).replace(/\.0$/, '');
+  return `${formatted}k`;
+};
+
+
+// -----------------
 // Dashboard Constants & Slot Mapping
 // -----------------
 export const SHIFTS = [
@@ -100,18 +124,27 @@ export const calculateStreaksAndGoals = (studiedDays: StudiedDays) => {
   const sortedDays = Object.values(studiedDays).sort((a, b) => a.date.getTime() - b.date.getTime());
   
   if (sortedDays.length === 0) {
-    return { longestStreak: 0, currentStreak: 0, perfectDays: 0 };
+    return { longestStreak: 0, currentStreak: 0, perfectDays: 0, weeklyGoalHits: 0 };
   }
 
   let longestStreak = 0;
   let currentStreak = 0;
   let perfectDays = 0;
+  let weeklyGoalHits = 0;
+  
+  const today = startOfToday();
+  const sevenDaysAgo = subDays(today, 6);
 
   for (let i = 0; i < sortedDays.length; i++) {
     const day = sortedDays[i];
 
     if (day.totalMinutes >= DAILY_GOAL_MINUTES) {
       perfectDays++;
+      
+      if (day.date >= sevenDaysAgo && day.date <= today) {
+        weeklyGoalHits++;
+      }
+
       const prevDay = i > 0 ? sortedDays[i - 1] : null;
 
       if (prevDay && isSameDay(subDays(day.date, 1), prevDay.date)) {
@@ -129,14 +162,13 @@ export const calculateStreaksAndGoals = (studiedDays: StudiedDays) => {
   }
 
   const lastStudiedDay = sortedDays[sortedDays.length - 1].date;
-  const today = startOfToday();
   const yesterday = subDays(today, 1);
 
   if (!isSameDay(lastStudiedDay, today) && !isSameDay(lastStudiedDay, yesterday)) {
     currentStreak = 0;
   }
   
-  return { longestStreak, currentStreak, perfectDays };
+  return { longestStreak, currentStreak, perfectDays, weeklyGoalHits };
 };
 
 // -----------------
@@ -147,23 +179,49 @@ interface OverallStatsData {
   totalDays: number;
   avgDailyMinutes: number;
   avgShiftMinutes: number;
+  bestDay: {
+    date: string;
+    minutes: number;
+  } | null;
 }
 
 export const calculateOverallStats = (studiedDays: StudiedDays): OverallStatsData => {
   const daysArray = Object.values(studiedDays);
   const totalDays = daysArray.length;
   if (totalDays === 0) {
-    return { totalMinutes: 0, totalDays: 0, avgDailyMinutes: 0, avgShiftMinutes: 0 };
+    return { 
+      totalMinutes: 0, 
+      totalDays: 0, 
+      avgDailyMinutes: 0, 
+      avgShiftMinutes: 0,
+      bestDay: null 
+    };
   }
 
   const totalMinutes = daysArray.reduce((sum, day) => sum + day.totalMinutes, 0);
+  
+  const bestDayData = daysArray.reduce((best, current) => {
+      return current.totalMinutes > best.totalMinutes ? current : best;
+  }, daysArray[0]);
+
+  const bestDayFormatted = {
+      date: format(bestDayData.date, "MMM d, yyyy"),
+      minutes: bestDayData.totalMinutes,
+  };
+  
   const avgDailyMinutes = totalMinutes / totalDays;
   const avgShiftMinutes = totalMinutes / (totalDays * SHIFTS.length);
 
-  return { totalMinutes, totalDays, avgDailyMinutes, avgShiftMinutes };
+  return { 
+    totalMinutes, 
+    totalDays, 
+    avgDailyMinutes, 
+    avgShiftMinutes, 
+    bestDay: bestDayFormatted 
+  };
 };
 
-// --- NEWLY ADDED PROGRESSION SYSTEM ---
+// --- PROGRESSION SYSTEM ---
 
 export interface RankData {
   level: number;

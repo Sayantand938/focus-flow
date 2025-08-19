@@ -3,7 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui
 import { Progress } from "@/shared/components/ui/progress";
 import { Shield, Star, Zap } from "lucide-react";
 import { motion } from "framer-motion";
-import { ProgressionInfo } from "@/shared/lib/utils";
+// --- UPDATED: Import formatXp utility ---
+import { ProgressionInfo, formatXp } from "@/shared/lib/utils";
 
 interface ProgressionStatusProps {
   progressionInfo: ProgressionInfo;
@@ -15,8 +16,6 @@ export function ProgressionStatus({ progressionInfo }: ProgressionStatusProps) {
 
   return (
     <Card className="relative overflow-hidden h-full">
-      {/* Decorative Background Elements */}
-      
       <CardHeader className="relative pb-3">
         <CardTitle className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -37,36 +36,33 @@ export function ProgressionStatus({ progressionInfo }: ProgressionStatusProps) {
       </CardHeader>
 
       <CardContent className="space-y-6 pt-0">
-{/* Level Badge */}
-<div className="flex justify-center">
-  <motion.div
-    key={progressionInfo.currentLevel}
-    initial={{ scale: 0.8, opacity: 0 }}
-    animate={{ scale: 1, opacity: 1 }}
-    className="relative px-8 py-4 rounded-2xl border-2"
-    style={{
-      backgroundColor: "rgb(16 18 20)",
-      border: "2px solid white",
-    }}
-  >
-    <div className="text-center">
-      <div className="text-xs uppercase tracking-wider font-medium text-muted-foreground mb-1">
-        Level
-      </div>
-      <div className="text-4xl font-bold text-foreground">
-        {progressionInfo.currentLevel}
-      </div>
-    </div>
-    {isMaxLevel && (
-      <div className="absolute -top-2 -right-2 w-5 h-5 bg-foreground rounded-full flex items-center justify-center">
-        <Star className="size-3 text-background" />
-      </div>
-    )}
-  </motion.div>
-</div>
+        <div className="flex justify-center">
+          <motion.div
+            key={progressionInfo.currentLevel}
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="relative px-8 py-4 rounded-2xl border-2"
+            style={{
+              backgroundColor: "rgb(16 18 20)",
+              border: "2px solid white",
+            }}
+          >
+            <div className="text-center">
+              <div className="text-xs uppercase tracking-wider font-medium text-muted-foreground mb-1">
+                Level
+              </div>
+              <div className="text-4xl font-bold text-foreground">
+                {progressionInfo.currentLevel}
+              </div>
+            </div>
+            {isMaxLevel && (
+              <div className="absolute -top-2 -right-2 w-5 h-5 bg-foreground rounded-full flex items-center justify-center">
+                <Star className="size-3 text-background" />
+              </div>
+            )}
+          </motion.div>
+        </div>
 
-
-        {/* Rank and Title */}
         <div className="text-center space-y-3">
           <motion.div
             key={progressionInfo.rankName}
@@ -92,15 +88,14 @@ export function ProgressionStatus({ progressionInfo }: ProgressionStatusProps) {
           </motion.p>
         </div>
 
-        {/* XP Progress Section */}
         <div className="space-y-5">
           {!isMaxLevel ? (
             <>
-              {/* XP Stats */}
               <div className="grid grid-cols-3 gap-3">
                 <div className="text-center p-4 bg-muted/50 rounded-lg border">
                   <div className="text-xl font-bold text-foreground mb-1">
-                    {Math.floor(progressionInfo.xpProgress)}
+                    {/* --- UPDATED: Apply XP formatting --- */}
+                    {formatXp(progressionInfo.xpProgress)}
                   </div>
                   <div className="text-xs text-muted-foreground uppercase tracking-wide">
                     Current XP
@@ -108,7 +103,8 @@ export function ProgressionStatus({ progressionInfo }: ProgressionStatusProps) {
                 </div>
                 <div className="text-center p-4 bg-muted/50 rounded-lg border">
                   <div className="text-xl font-bold text-foreground mb-1">
-                    {progressionInfo.xpNeeded - Math.floor(progressionInfo.xpProgress)}
+                    {/* --- UPDATED: Apply XP formatting --- */}
+                    {formatXp(progressionInfo.xpNeeded - progressionInfo.xpProgress)}
                   </div>
                   <div className="text-xs text-muted-foreground uppercase tracking-wide">
                     Needed
@@ -124,14 +120,14 @@ export function ProgressionStatus({ progressionInfo }: ProgressionStatusProps) {
                 </div>
               </div>
 
-              {/* Progress Bar Section */}
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-medium text-muted-foreground">
                     Level {progressionInfo.currentLevel} → {progressionInfo.currentLevel + 1}
                   </span>
                   <span className="text-sm font-bold text-foreground">
-                    {progressionInfo.xpNeeded} XP Total
+                    {/* --- UPDATED: Apply XP formatting --- */}
+                    {formatXp(progressionInfo.xpNeeded)} XP Total
                   </span>
                 </div>
                 

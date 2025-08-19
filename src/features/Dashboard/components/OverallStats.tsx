@@ -1,7 +1,7 @@
 // src/features/Dashboard/components/OverallStats.tsx
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import { Separator } from "@/shared/components/ui/separator";
-import { TrendingUp, Clock, Calendar, BarChart2, ClipboardList } from "lucide-react";
+import { TrendingUp, Clock, Calendar, BarChart2, ClipboardList, Trophy } from "lucide-react";
 
 interface OverallStatsProps {
   overallStats: {
@@ -9,6 +9,7 @@ interface OverallStatsProps {
     totalDays: number;
     avgDailyMinutes: number;
     avgShiftMinutes: number;
+    bestDay: { date: string; minutes: number } | null;
   };
 }
 
@@ -81,6 +82,18 @@ export function OverallStats({ overallStats }: OverallStatsProps) {
           value={`${overallStats.avgShiftMinutes.toFixed(1)} mins`} 
           icon={ClipboardList} 
         />
+        <Separator />
+        <div className="flex items-center justify-between">
+            <div className="flex flex-col">
+                <h3 className="text-sm font-medium text-muted-foreground">Last Best Day</h3>
+                {overallStats.bestDay ? (
+                    <p className="text-2xl font-bold">{overallStats.bestDay.date}</p>
+                ) : (
+                    <p className="text-2xl font-bold">N/A</p>
+                )}
+            </div>
+            <Trophy className="h-5 w-5 text-muted-foreground" />
+        </div>
       </CardContent>
     </Card>
   );

@@ -1,12 +1,14 @@
+// src/features/Dashboard/components/StreaksAndGoals.tsx
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import { Separator } from "@/shared/components/ui/separator";
-import { Flame, Star, Award, Target } from "lucide-react";
+import { Flame, Star, Award, Target, CalendarCheck } from "lucide-react";
 
 interface StreaksAndGoalsProps {
   streaksAndGoals: {
     currentStreak: number;
     longestStreak: number;
     perfectDays: number;
+    weeklyGoalHits: number;
   };
   goalCompletionRate: number;
 }
@@ -47,6 +49,8 @@ export function StreaksAndGoals({
         <StatItem title="Longest Streak" value={`${streaksAndGoals.longestStreak} days`} icon={Award} />
         <Separator />
         <StatItem title="Perfect Days" value={String(streaksAndGoals.perfectDays)} icon={Star} />
+        <Separator />
+        <StatItem title="Weekly Goal Hits" value={`${streaksAndGoals.weeklyGoalHits} days`} icon={CalendarCheck} />
         <Separator />
         <StatItem title="Goal Completion" value={`${goalCompletionRate.toFixed(1)}%`} icon={Target} />
       </CardContent>
