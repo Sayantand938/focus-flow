@@ -1,4 +1,3 @@
-// src/features/Todo/components/NewTaskSheet.tsx
 import { z } from "zod";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
@@ -87,9 +86,9 @@ export function NewTaskSheet({ isOpen, onClose, task }: NewTaskSheetProps) {
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
       <SheetContent
-        side={isMobile ? 'bottom' : 'right'}
+        side={'right'}
         showCloseButton={false}
-        className={cn("w-full p-0 flex flex-col", isMobile ? "h-auto max-h-[90vh] rounded-t-lg" : "sm:max-w-md")}
+        className={cn("w-full p-0 flex flex-col", isMobile ? "h-full pt-8" : "sm:max-w-md")}
       >
         <SheetHeader className="p-6 border-b">
           <SheetTitle>{isEditing ? "Edit To-Do" : "Add New To-Do"}</SheetTitle>
@@ -106,7 +105,7 @@ export function NewTaskSheet({ isOpen, onClose, task }: NewTaskSheetProps) {
                 name="title"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Title</FormLabel> {/* --- ICON REMOVED --- */}
+                    <FormLabel>Title</FormLabel>
                     <FormControl><Input placeholder="e.g., Finalize project report" {...field} /></FormControl>
                     <FormMessage />
                   </FormItem>
@@ -117,7 +116,7 @@ export function NewTaskSheet({ isOpen, onClose, task }: NewTaskSheetProps) {
                 name="description"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Description</FormLabel> {/* --- ICON REMOVED --- */}
+                    <FormLabel>Description</FormLabel>
                     <FormControl><Textarea placeholder="Add more details (optional)" {...field} /></FormControl>
                     <FormMessage />
                   </FormItem>
@@ -128,7 +127,7 @@ export function NewTaskSheet({ isOpen, onClose, task }: NewTaskSheetProps) {
                 name="dueDate"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Due Date</FormLabel> {/* --- ICON REMOVED --- */}
+                    <FormLabel>Due Date</FormLabel>
                     <FormControl>
                       <DatePicker date={field.value} setDate={field.onChange} />
                     </FormControl>
@@ -142,7 +141,7 @@ export function NewTaskSheet({ isOpen, onClose, task }: NewTaskSheetProps) {
                   name="status"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Status</FormLabel> {/* --- ICON REMOVED --- */}
+                      <FormLabel>Status</FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger><SelectValue placeholder="Select a status" /></SelectTrigger>
@@ -164,7 +163,7 @@ export function NewTaskSheet({ isOpen, onClose, task }: NewTaskSheetProps) {
                   name="priority"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Priority</FormLabel> {/* --- ICON REMOVED --- */}
+                      <FormLabel>Priority</FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger><SelectValue placeholder="Select a priority" /></SelectTrigger>
@@ -186,9 +185,12 @@ export function NewTaskSheet({ isOpen, onClose, task }: NewTaskSheetProps) {
           </Form>
         </div>
         
-        <SheetFooter className="p-6 border-t mt-auto">
-          <Button type="submit" onClick={form.handleSubmit(onSubmit)} className="w-full">
+        <SheetFooter className="p-6 border-t mt-auto flex flex-row gap-4">
+          <Button type="submit" onClick={form.handleSubmit(onSubmit)} className="w-3/4">
             {isEditing ? "Save Changes" : "Create Task"}
+          </Button>
+          <Button variant="outline" onClick={onClose} className="w-1/4">
+            Cancel
           </Button>
         </SheetFooter>
       </SheetContent>
