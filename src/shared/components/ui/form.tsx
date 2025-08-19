@@ -1,3 +1,4 @@
+// src/shared/components/ui/form.tsx
 import * as React from "react"
 import * as LabelPrimitive from "@radix-ui/react-label"
 import { Slot } from "@radix-ui/react-slot"
@@ -6,7 +7,7 @@ import {
   FormProvider,
   useFormContext,
   type ControllerProps,
-  type FieldPath,
+  type FieldPath, // <-- Correct type is already imported
   type FieldValues,
 } from "react-hook-form"
 
@@ -26,9 +27,10 @@ const FormFieldContext = React.createContext<FormFieldContextValue>(
   {} as FormFieldContextValue
 )
 
+// --- UPDATED LINE ---
 const FormField = <
   TFieldValues extends FieldValues = FieldValues,
-  TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>,
+  TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>, // FIX: Changed 'Path' to 'FieldPath'
 >({
   ...props
 }: ControllerProps<TFieldValues, TName>) => {
@@ -139,13 +141,11 @@ const FormDescription = React.forwardRef<
 })
 FormDescription.displayName = "FormDescription"
 
-// --- FIX IS HERE ---
 function FormMessage({
   className,
   children,
   ...props
 }: React.HTMLAttributes<HTMLParagraphElement>) {
-  // Call useFormField only ONCE at the top of the component.
   const { error, formMessageId } = useFormField();
   const body = error ? String(error?.message) : children;
 
@@ -155,7 +155,7 @@ function FormMessage({
 
   return (
     <p
-      id={formMessageId} // Use the id from the hook result
+      id={formMessageId}
       className={cn("text-sm font-medium text-destructive", className)}
       {...props}
     >
@@ -163,7 +163,6 @@ function FormMessage({
     </p>
   );
 }
-// --- END OF FIX ---
 
 
 export {

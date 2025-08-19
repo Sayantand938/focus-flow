@@ -15,24 +15,10 @@ import { ProgressionStatus } from "./components/ProgressionStatus";
 import { WeeklyProgressChart } from "./components/WeeklyProgressChart";
 import { StudyTimeTrend } from "./components/StudyTimeTrend";
 import { useAuthStore } from "@/stores/authStore";
-import { useLogStore } from "@/stores/logStore";
+import { useLogStore, selectStudiedDays } from "@/stores/logStore";
 import { useProgressionStore } from "@/stores/progressionStore";
-import { StudiedDays, DailyLog } from "@/shared/lib/types";
-
-// Transformation function can be a local utility or imported
-function transformLogsToStudiedDays(dailyLogs: DailyLog[]): StudiedDays {
-  const studiedDays: StudiedDays = {};
-  for (const log of dailyLogs) {
-    const parts = log.id.split('-').map(Number);
-    const date = new Date(parts[0], parts[1] - 1, parts[2]);
-    studiedDays[log.id] = {
-      date: date,
-      completedSlots: log.completedSlots,
-      totalMinutes: log.completedSlots.length * 30,
-    };
-  }
-  return studiedDays;
-}
+// --- UPDATED: Import StudiedDays type for casting ---
+import { StudiedDays } from "@/shared/lib/types";
 
 interface OverallStatsData {
   totalMinutes: number;
@@ -44,10 +30,10 @@ interface OverallStatsData {
 export function Dashboard() {
   const isMobile = useIsMobile();
   const user = useAuthStore((state) => state.user);
-  const dailyLogs = useLogStore((state) => state.dailyLogs);
   const totalXp = useProgressionStore((state) => state.totalXp);
-
-  const studiedDays = useMemo(() => transformLogsToStudiedDays(dailyLogs), [dailyLogs]);
+  
+  // --- FIX: Explicitly cast the return type of the selector to fix all 'unknown' errors ---
+  const studiedDays = useLogStore(selectStudiedDays) as StudiedDays;
 
   const todayShiftStats = useMemo(() => calculateShiftStats(studiedDays, new Date()), [studiedDays]);
   const past7DaysProgress = useMemo(() => getPast7DaysProgress(studiedDays), [studiedDays]);

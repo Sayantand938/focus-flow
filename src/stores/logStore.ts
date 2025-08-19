@@ -5,11 +5,14 @@ import {
   arrayUnion, arrayRemove 
 } from 'firebase/firestore';
 import { db } from '@/shared/services/firebase';
-import { DailyLog, Todo } from '@/shared/lib/types';
+import { DailyLog, Todo, StudiedDays } from '@/shared/lib/types';
 import { format } from 'date-fns';
 import { hourToSlot } from '@/shared/lib/utils';
 import { useAuthStore } from './authStore';
-import { useProgressionStore } from './progressionStore'; // <-- IMPORT
+import { useProgressionStore } from './progressionStore';
+
+// --- This will now be found after `npm install proxy-memoize` ---
+import { memoize } from 'proxy-memoize';
 
 interface LogState {
   dailyLogs: DailyLog[];
@@ -19,6 +22,20 @@ interface LogState {
   resetLogs: () => void;
   importLogs: (data: { dailyLogs: Record<string, number[]>, todos: Todo[] }) => Promise<void>;
 }
+
+export const selectStudiedDays = memoize((state: LogState): StudiedDays => {
+  const studiedDays: StudiedDays = {};
+  for (const log of state.dailyLogs) {
+    const parts = log.id.split('-').map(Number);
+    const date = new Date(parts[0], parts[1] - 1, parts[2]);
+    studiedDays[log.id] = {
+      date: date,
+      completedSlots: log.completedSlots,
+      totalMinutes: log.completedSlots.length * 30,
+    };
+  }
+  return studiedDays;
+});
 
 export const useLogStore = create<LogState>((set, get) => ({
   dailyLogs: [],
@@ -73,20 +90,17 @@ export const useLogStore = create<LogState>((set, get) => ({
       return { dailyLogs: newLogs };
     });
 
-    // Firestore operation
     try {
       if (isAdding) {
         await setDoc(logDocRef, { completedSlots: arrayUnion(slot) }, { merge: true });
-        // --- ADDED: Grant XP ---
         useProgressionStore.getState().addXp(30);
       } else {
         await updateDoc(logDocRef, { completedSlots: arrayRemove(slot) });
-        // --- ADDED: Revoke XP ---
         useProgressionStore.getState().addXp(-30);
       }
     } catch (error) {
       console.error("Failed to update Firestore, rolling back:", error);
-      set({ dailyLogs: originalLogs }); // Rollback on failure
+      set({ dailyLogs: originalLogs }); 
     }
   },
   resetLogs: () => {
@@ -96,17 +110,13 @@ export const useLogStore = create<LogState>((set, get) => ({
     const user = useAuthStore.getState().user;
     if (!user) throw new Error('No user logged in');
 
-    // Optimistic UI update
     const newDailyLogs = Object.entries(data.dailyLogs).map(([id, completedSlots]) => ({ id, completedSlots }));
     set({ dailyLogs: newDailyLogs });
     
-    // --- ADDED: Recalculate total XP on import ---
     const totalImportedXp = newDailyLogs.reduce((sum, log) => sum + log.completedSlots.length * 30, 0);
     useProgressionStore.getState().resetXp();
     useProgressionStore.getState().addXp(totalImportedXp);
-    // --- END ---
 
-    // This operation is destructive, so no easy rollback. The logic is kept similar to original.
     const batch = writeBatch(db);
     const logsCollectionRef = collection(db, "users", user.uid, "dailyLogs");
     const logsSnapshot = await getDocs(logsCollectionRef);
