@@ -1,3 +1,4 @@
+// src/shared/components/ui/badge.tsx
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { cva, type VariantProps } from "class-variance-authority"
@@ -17,11 +18,14 @@ const badgeVariants = cva(
           "border-transparent bg-destructive text-white [a&]:hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60",
         outline:
           "text-foreground [a&]:hover:bg-accent [a&]:hover:text-accent-foreground",
-        // ✅ New semantic variants
-        pending:
-          "bg-muted text-muted-foreground border border-border",
-        logged:
-          "bg-white text-black border border-border",
+        // Task Status Variants
+        pending: "border-transparent bg-badge-pending-bg text-badge-pending-text",
+        "in-progress": "border-transparent bg-badge-inprogress-bg text-badge-inprogress-text",
+        completed: "border-transparent bg-badge-completed-bg text-badge-completed-text",
+        // Task Priority Variants
+        high: "border-transparent bg-badge-high-bg text-badge-high-text",
+        medium: "border-transparent bg-badge-medium-bg text-badge-medium-text",
+        low: "border-transparent bg-badge-low-bg text-badge-low-text",
       },
     },
     defaultVariants: {

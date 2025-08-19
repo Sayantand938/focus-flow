@@ -10,15 +10,10 @@ import toast from 'react-hot-toast';
 interface AuthState {
   user: User | null;
   isLoadingAuth: boolean;
-  initAuthListener: () => () => void; // Returns the unsubscribe function
+  initAuthListener: () => () => void;
   handleSignOut: () => Promise<void>;
 }
 
-/**
- * Creates a user profile document in Firestore on their first sign-up.
- * This is idempotent and will not overwrite existing profiles.
- * @param user The Firebase user object.
- */
 const createUserProfileDocument = async (user: User) => {
   const userDocRef = doc(db, "users", user.uid);
   const userDocSnap = await getDoc(userDocRef);
@@ -27,9 +22,7 @@ const createUserProfileDocument = async (user: User) => {
     const { displayName, email, photoURL } = user;
     try {
       await setDoc(userDocRef, {
-        displayName,
-        email,
-        photoURL,
+        displayName, email, photoURL,
         createdAt: serverTimestamp(),
         settings: { theme: 'dark' }
       });
@@ -42,24 +35,15 @@ const createUserProfileDocument = async (user: User) => {
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   isLoadingAuth: true,
-
-  /**
-   * Initializes the Firebase Auth state listener. This is the central point
-   * for handling user login and logout across the application.
-   */
   initAuthListener: () => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (currentUser) {
         await createUserProfileDocument(currentUser);
         set({ user: currentUser });
-        
-        // After user is confirmed, trigger data fetching in other stores
         useLogStore.getState().fetchLogs(currentUser.uid);
-        useTodoStore.getState().fetchTodos(currentUser.uid);
+        // No longer fetching todos here
       } else {
         set({ user: null });
-        
-        // Clear all user-specific data on sign out
         useLogStore.getState().resetLogs();
         useTodoStore.getState().resetTodos();
       }
@@ -67,19 +51,13 @@ export const useAuthStore = create<AuthState>((set) => ({
     });
     return unsubscribe;
   },
-
-  /**
-   * Handles the user sign-out process with feedback.
-   */
   handleSignOut: async () => {
     const promise = signOut(auth);
-
     toast.promise(promise, {
       loading: 'Signing out...',
       success: 'You have been signed out.',
       error: 'Failed to sign out.',
     });
-
     try {
       await promise;
     } catch (error) {

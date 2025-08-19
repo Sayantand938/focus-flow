@@ -1,3 +1,4 @@
+/* src/index.css */
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap');
 @import "tailwindcss";
 @import "tw-animate-css";
@@ -75,6 +76,20 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+
+  /* Badge Colors */
+  --badge-pending-bg: oklch(0.8 0.1 230);
+  --badge-pending-text: oklch(0.4 0.1 230);
+  --badge-inprogress-bg: oklch(0.8 0.1 280);
+  --badge-inprogress-text: oklch(0.4 0.1 280);
+  --badge-completed-bg: oklch(0.85 0.15 140);
+  --badge-completed-text: oklch(0.4 0.1 140);
+  --badge-high-bg: oklch(0.85 0.15 25);
+  --badge-high-text: oklch(0.5 0.15 25);
+  --badge-medium-bg: oklch(0.9 0.15 90);
+  --badge-medium-text: oklch(0.5 0.1 90);
+  --badge-low-bg: oklch(0.85 0.1 200);
+  --badge-low-text: oklch(0.45 0.1 200);
 }
 
 .dark {
@@ -109,6 +124,20 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+
+  /* Dark Badge Colors */
+  --badge-pending-bg: oklch(0.3 0.1 230 / 50%);
+  --badge-pending-text: oklch(0.9 0.1 230);
+  --badge-inprogress-bg: oklch(0.3 0.1 280 / 50%);
+  --badge-inprogress-text: oklch(0.9 0.1 280);
+  --badge-completed-bg: oklch(0.3 0.1 140 / 50%);
+  --badge-completed-text: oklch(0.9 0.1 140);
+  --badge-high-bg: oklch(0.3 0.1 25 / 50%);
+  --badge-high-text: oklch(0.9 0.1 25);
+  --badge-medium-bg: oklch(0.3 0.1 90 / 50%);
+  --badge-medium-text: oklch(0.9 0.1 90);
+  --badge-low-bg: oklch(0.3 0.1 200 / 50%);
+  --badge-low-text: oklch(0.9 0.1 200);
 }
 
 @layer base {
