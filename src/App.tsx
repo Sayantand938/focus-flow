@@ -8,7 +8,8 @@ import Auth from "@/features/Auth";
 import Dashboard from "@/features/Dashboard";
 import FocusSheet from "@/features/FocusSheet";
 import TodoList from "@/features/Todo";
-import PomodoroTimer from "@/features/Timer"; // This import now works
+import PomodoroTimer from "@/features/Timer";
+import Progression from "@/features/Progression";
 
 // Import shared components
 import SideMenu from "@/shared/components/layout/SideMenu";
@@ -17,7 +18,7 @@ import SideMenu from "@/shared/components/layout/SideMenu";
 import { useAppStore } from "@/stores/appStore";
 import { useAuthStore } from "@/stores/authStore";
 import { useLogStore } from "@/stores/logStore";
-import { useTodoStore } from "@/stores/todoStore";
+// --- FIX: No longer importing useTodoStore here as it's not needed for loading state ---
 
 // Import shared utilities
 import { cn } from "@/shared/lib/utils";
@@ -27,7 +28,7 @@ function App() {
   const activePage = useAppStore((state) => state.activePage);
   const { user, isLoadingAuth, initAuthListener } = useAuthStore();
   const isLoadingLogs = useLogStore((state) => state.isLoadingLogs);
-  const isLoadingTodos = useTodoStore((state) => state.isLoadingTodos);
+  // --- FIX: Removed isLoadingTodos as it's no longer in the store ---
 
   // On initial application load, set up the Firebase authentication listener.
   useEffect(() => {
@@ -36,8 +37,10 @@ function App() {
   }, [initAuthListener]);
 
   const renderContent = () => {
-    const isAppLoading = (isLoadingLogs && activePage !== 'todo-list') || 
-                         (isLoadingTodos && activePage === 'todo-list');
+    // --- FIX: Simplified loading logic ---
+    // The loading indicator now only depends on logs, as todos are loaded synchronously.
+    // The todo-list page will never be blocked by log loading.
+    const isAppLoading = isLoadingLogs && activePage !== 'todo-list';
     
     if (isAppLoading) {
       return <div className="text-center text-muted-foreground"><p>Loading data...</p></div>;
@@ -50,6 +53,7 @@ function App() {
       case "focus-sheet":   return <FocusSheet />;
       case "dashboard":     return <Dashboard />;
       case "todo-list":     return <TodoList />;
+      case "progression":   return <Progression />;
       case "settings":      return <Settings />;
       default:              return <FocusSheet />;
     }

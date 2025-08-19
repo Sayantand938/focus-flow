@@ -9,6 +9,7 @@ import { DailyLog, Todo } from '@/shared/lib/types';
 import { format } from 'date-fns';
 import { hourToSlot } from '@/shared/lib/utils';
 import { useAuthStore } from './authStore';
+import { useProgressionStore } from './progressionStore'; // <-- IMPORT
 
 interface LogState {
   dailyLogs: DailyLog[];
@@ -76,8 +77,12 @@ export const useLogStore = create<LogState>((set, get) => ({
     try {
       if (isAdding) {
         await setDoc(logDocRef, { completedSlots: arrayUnion(slot) }, { merge: true });
+        // --- ADDED: Grant XP ---
+        useProgressionStore.getState().addXp(30);
       } else {
         await updateDoc(logDocRef, { completedSlots: arrayRemove(slot) });
+        // --- ADDED: Revoke XP ---
+        useProgressionStore.getState().addXp(-30);
       }
     } catch (error) {
       console.error("Failed to update Firestore, rolling back:", error);
@@ -94,6 +99,12 @@ export const useLogStore = create<LogState>((set, get) => ({
     // Optimistic UI update
     const newDailyLogs = Object.entries(data.dailyLogs).map(([id, completedSlots]) => ({ id, completedSlots }));
     set({ dailyLogs: newDailyLogs });
+    
+    // --- ADDED: Recalculate total XP on import ---
+    const totalImportedXp = newDailyLogs.reduce((sum, log) => sum + log.completedSlots.length * 30, 0);
+    useProgressionStore.getState().resetXp();
+    useProgressionStore.getState().addXp(totalImportedXp);
+    // --- END ---
 
     // This operation is destructive, so no easy rollback. The logic is kept similar to original.
     const batch = writeBatch(db);

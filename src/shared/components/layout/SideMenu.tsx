@@ -1,7 +1,7 @@
 // src/shared/components/layout/SideMenu.tsx
 import {
   LayoutDashboard, LogOut, Menu, Settings, User as UserIcon, 
-  ClipboardList, ListTodo, Target, Timer as TimerIcon,
+  ClipboardList, ListTodo, Target, Timer as TimerIcon, Shield, // <-- IMPORT Shield
 } from "lucide-react";
 import { cn } from "@/shared/lib/utils";
 import { useState } from "react";
@@ -17,6 +17,7 @@ const menuItems = [
   { name: "Focus Sheet", icon: ClipboardList, path: "focus-sheet" },
   { name: "Dashboard", icon: LayoutDashboard, path: "dashboard" },
   { name: "Todo List", icon: ListTodo, path: "todo-list" },
+  { name: "Progression", icon: Shield, path: "progression" }, // <-- ADDED
   { name: "Settings", icon: Settings, path: "settings" },
 ];
 
