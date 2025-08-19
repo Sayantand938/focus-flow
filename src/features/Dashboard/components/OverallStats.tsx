@@ -1,3 +1,4 @@
+// src/features/Dashboard/components/OverallStats.tsx
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import { Separator } from "@/shared/components/ui/separator";
 import { TrendingUp, Clock, Calendar, BarChart2, ClipboardList } from "lucide-react";
@@ -10,6 +11,31 @@ interface OverallStatsProps {
     avgShiftMinutes: number;
   };
 }
+
+// --- 1. NEW HELPER FUNCTION ---
+/**
+ * Converts a total number of minutes into a human-readable format.
+ * Example: 125 -> "2 hr 5 min"
+ * Example: 120 -> "2 hr"
+ * Example: 59  -> "59 mins"
+ */
+const formatMinutesToHours = (totalMinutes: number): string => {
+  if (totalMinutes < 1) {
+    return "0 mins";
+  }
+  
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = Math.floor(totalMinutes % 60);
+
+  if (hours === 0) {
+    return `${minutes} mins`;
+  }
+  if (minutes === 0) {
+    return `${hours} hr`;
+  }
+  
+  return `${hours} hr ${minutes} min`;
+};
 
 const StatItem = ({
   title,
@@ -39,13 +65,30 @@ export function OverallStats({ overallStats }: OverallStatsProps) {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <StatItem title="Total Studied Time" value={`${overallStats.totalMinutes.toFixed(2)} mins`} icon={Clock} />
+        {/* --- 2. UPDATED StatItem TO USE THE FORMATTING FUNCTION --- */}
+        <StatItem 
+          title="Total Studied Time" 
+          value={formatMinutesToHours(overallStats.totalMinutes)} 
+          icon={Clock} 
+        />
         <Separator />
-        <StatItem title="Total Tracked Days" value={String(overallStats.totalDays)} icon={Calendar} />
+        <StatItem 
+          title="Total Tracked Days" 
+          value={String(overallStats.totalDays)} 
+          icon={Calendar} 
+        />
         <Separator />
-        <StatItem title="Avg. Daily Study" value={`${overallStats.avgDailyMinutes.toFixed(2)} mins`} icon={BarChart2} />
+        <StatItem 
+          title="Avg. Daily Study" 
+          value={`${overallStats.avgDailyMinutes.toFixed(1)} mins`} 
+          icon={BarChart2} 
+        />
         <Separator />
-        <StatItem title="Avg. per Shift" value={`${overallStats.avgShiftMinutes.toFixed(2)} mins`} icon={ClipboardList} />
+        <StatItem 
+          title="Avg. per Shift" 
+          value={`${overallStats.avgShiftMinutes.toFixed(1)} mins`} 
+          icon={ClipboardList} 
+        />
       </CardContent>
     </Card>
   );

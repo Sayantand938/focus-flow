@@ -1,21 +1,22 @@
 // src/stores/logStore.ts
 import { create } from 'zustand';
 import { 
-  collection, doc, getDocs, query, setDoc, updateDoc, writeBatch, 
-  arrayUnion, arrayRemove, onSnapshot 
+  collection, doc, getDocs, query, writeBatch, 
+  arrayUnion, arrayRemove, onSnapshot, 
+  setDoc, updateDoc // <-- ADDED setDoc and updateDoc BACK
 } from 'firebase/firestore';
 import { db } from '@/shared/services/firebase';
 import { DailyLog, Todo, StudiedDays } from '@/shared/lib/types';
 import { format } from 'date-fns';
 import { hourToSlot } from '@/shared/lib/utils';
 import { useAuthStore } from './authStore';
-import { useProgressionStore } from './progressionStore';
 import { memoize } from 'proxy-memoize';
+import toast from 'react-hot-toast';
 
 interface LogState {
   dailyLogs: DailyLog[];
   isLoadingLogs: boolean;
-  fetchLogs: (uid: string) => () => void; // Returns an unsubscribe function
+  fetchLogs: (uid: string) => () => void;
   toggleSession: (hour: number, isAdding: boolean) => Promise<void>;
   resetLogs: () => void;
   importLogs: (data: { dailyLogs: Record<string, number[]>, todos: Todo[] }) => Promise<void>;
@@ -35,7 +36,13 @@ export const selectStudiedDays = memoize((state: LogState): StudiedDays => {
   return studiedDays;
 });
 
-export const useLogStore = create<LogState>((set, get) => ({
+export const selectTotalXp = memoize((state: LogState): number => {
+  return state.dailyLogs.reduce((total, log) => {
+    return total + (log.completedSlots.length * 30);
+  }, 0);
+});
+
+export const useLogStore = create<LogState>((set) => ({
   dailyLogs: [],
   isLoadingLogs: true,
   fetchLogs: (uid: string) => {
@@ -62,16 +69,10 @@ export const useLogStore = create<LogState>((set, get) => ({
 
     const slot = hourToSlot(hour);
     if (slot === null) return;
-
-    const docId = format(new Date(), "yyyy-MM-dd");
-    const logDocRef = doc(db, "users", user.uid, "dailyLogs", docId);
     
-    // Optimistic UI updates are not strictly necessary with real-time listeners,
-    // but they can make the UI feel even faster, so we'll keep them.
-    const originalLogs = [...get().dailyLogs];
-
     set(state => {
       const newLogs = [...state.dailyLogs];
+      const docId = format(new Date(), "yyyy-MM-dd");
       let todayLog = newLogs.find(log => log.id === docId);
       if (isAdding) {
         if (todayLog) {
@@ -88,16 +89,18 @@ export const useLogStore = create<LogState>((set, get) => ({
     });
 
     try {
+      const docId = format(new Date(), "yyyy-MM-dd");
+      const logDocRef = doc(db, "users", user.uid, "dailyLogs", docId);
+      
       if (isAdding) {
         await setDoc(logDocRef, { completedSlots: arrayUnion(slot) }, { merge: true });
-        useProgressionStore.getState().addXp(30);
       } else {
         await updateDoc(logDocRef, { completedSlots: arrayRemove(slot) });
-        useProgressionStore.getState().addXp(-30);
       }
+
     } catch (error) {
-      console.error("Failed to update Firestore, rolling back UI:", error);
-      set({ dailyLogs: originalLogs }); 
+      console.error("Failed to sync session:", error);
+      toast.error("Failed to sync session.");
     }
   },
   resetLogs: () => {
@@ -108,22 +111,20 @@ export const useLogStore = create<LogState>((set, get) => ({
     if (!user) throw new Error('No user logged in');
 
     const newDailyLogs = Object.entries(data.dailyLogs).map(([id, completedSlots]) => ({ id, completedSlots }));
+    
     set({ dailyLogs: newDailyLogs });
     
-    const totalImportedXp = newDailyLogs.reduce((sum, log) => sum + log.completedSlots.length * 30, 0);
-    useProgressionStore.getState().resetXp();
-    useProgressionStore.getState().addXp(totalImportedXp);
-
     const batch = writeBatch(db);
     const logsCollectionRef = collection(db, "users", user.uid, "dailyLogs");
     const logsSnapshot = await getDocs(logsCollectionRef);
+    
     logsSnapshot.docs.forEach(doc => batch.delete(doc.ref));
 
     for (const [docId, slots] of Object.entries(data.dailyLogs)) {
       const logDocRef = doc(db, "users", user.uid, "dailyLogs", docId);
       batch.set(logDocRef, { completedSlots: slots });
     }
-
+    
     await batch.commit();
   }
 }));
