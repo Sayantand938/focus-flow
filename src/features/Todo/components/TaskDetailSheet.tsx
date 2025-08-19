@@ -19,6 +19,8 @@ import { Edit, Plus, Trash2, FileText, Info, ListChecks, AlertTriangle } from 'l
 import { useTodoStore } from '@/stores/todoStore';
 import { useIsMobile } from '@/shared/hooks/useIsMobile';
 import { cn } from '@/shared/lib/utils';
+// --- 1. IMPORT MOTION & ANIMATEPRESENCE ---
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface TaskDetailSheetProps {
   task: Todo | null;
@@ -85,17 +87,28 @@ export function TaskDetailSheet({ task, onClose, onEdit }: TaskDetailSheetProps)
           <Separator />
           <div className="space-y-3">
             <h4 className="font-semibold flex items-center gap-2"><ListChecks className="size-4" /> Subtasks</h4>
-            {task.subtasks.map(subtask => (
-              <div key={subtask.id} className="flex items-center gap-3 group">
-                <Checkbox id={subtask.id} checked={subtask.isCompleted} onCheckedChange={() => toggleSubtask(task.id, subtask.id)} />
-                <label htmlFor={subtask.id} className={`flex-1 text-sm ${subtask.isCompleted ? 'line-through text-muted-foreground' : ''}`}>
-                  {subtask.text}
-                </label>
-                <Button variant="ghost" size="icon" className="size-7 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => deleteSubtask(task.id, subtask.id)} aria-label={`Delete subtask: ${subtask.text}`}>
-                  <Trash2 className="size-4 text-destructive" />
-                </Button>
-              </div>
-            ))}
+            {/* --- 2. WRAP THE LIST IN ANIMATEPRESENCE --- */}
+            <AnimatePresence>
+              {task.subtasks.map(subtask => (
+                // --- 3. WRAP EACH ITEM IN A MOTION.DIV ---
+                <motion.div
+                  key={subtask.id}
+                  layout // Ensures smooth re-ordering if that feature is added
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, x: -20, transition: { duration: 0.2 } }}
+                  className="flex items-center gap-3 group"
+                >
+                  <Checkbox id={subtask.id} checked={subtask.isCompleted} onCheckedChange={() => toggleSubtask(task.id, subtask.id)} />
+                  <label htmlFor={subtask.id} className={`flex-1 text-sm ${subtask.isCompleted ? 'line-through text-muted-foreground' : ''}`}>
+                    {subtask.text}
+                  </label>
+                  <Button variant="ghost" size="icon" className="size-7 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => deleteSubtask(task.id, subtask.id)} aria-label={`Delete subtask: ${subtask.text}`}>
+                    <Trash2 className="size-4 text-destructive" />
+                  </Button>
+                </motion.div>
+              ))}
+            </AnimatePresence>
             <form onSubmit={handleAddSubtask} className="flex items-center gap-2 pt-2">
               <Input placeholder="Add Sub Task" value={newSubtask} onChange={(e) => setNewSubtask(e.target.value)} />
               <Button type="submit" size="icon" variant="outline" aria-label="Add new subtask">

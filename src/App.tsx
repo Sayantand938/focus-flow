@@ -10,6 +10,9 @@ import FocusSheet from "@/features/FocusSheet";
 import TodoList from "@/features/Todo";
 import PomodoroTimer from "@/features/Timer";
 
+// --- 1. IMPORT THE NEW SKELETON COMPONENT ---
+import { ShiftCardSkeleton } from "@/features/FocusSheet/components/ShiftCardSkeleton";
+
 // Import shared components
 import SideMenu from "@/shared/components/layout/SideMenu";
 
@@ -22,26 +25,48 @@ import { useTodoStore } from "@/stores/todoStore";
 // Import shared utilities
 import { cn } from "@/shared/lib/utils";
 
+// --- 2. CREATE A DEDICATED SKELETON UI COMPONENT ---
+const AppSkeleton = ({ page }: { page: string }) => {
+  // We can expand this to show skeletons for other pages too
+  if (page === 'focus-sheet') {
+    return (
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 mt-16">
+        <ShiftCardSkeleton />
+        <ShiftCardSkeleton />
+        <ShiftCardSkeleton />
+        <ShiftCardSkeleton />
+      </div>
+    );
+  }
+
+  // Fallback for other pages while loading
+  return (
+    <div className="flex-1 flex items-center justify-center text-center text-muted-foreground">
+      <p>Loading data...</p>
+    </div>
+  );
+};
+
+
 function App() {
-  // Subscribe to state and actions from our global stores
   const activePage = useAppStore((state) => state.activePage);
   const { user, isLoadingAuth, initAuthListener } = useAuthStore();
   const isLoadingLogs = useLogStore((state) => state.isLoadingLogs);
   const isLoadingTodos = useTodoStore((state) => state.isLoadingTodos);
 
-  // On initial application load, set up the Firebase authentication listener.
   useEffect(() => {
     const unsubscribe = initAuthListener();
     return () => unsubscribe();
   }, [initAuthListener]);
 
+  // --- 3. UPDATE RENDERCONTENT LOGIC ---
   const renderContent = () => {
-    // The main app is loading if logs or todos are still being fetched for the first time.
     const isAppLoading = isLoadingLogs || isLoadingTodos;
     
-    // The TodoList has its own internal loading spinner, so we don't block the whole UI for it.
+    // Show skeleton UI if the app is loading data for the first time.
+    // The TodoList handles its own internal loading state, so we exclude it here.
     if (isAppLoading && activePage !== 'todo-list') {
-      return <div className="text-center text-muted-foreground"><p>Loading data...</p></div>;
+      return <AppSkeleton page={activePage} />;
     }
 
     if (!user) return null;
