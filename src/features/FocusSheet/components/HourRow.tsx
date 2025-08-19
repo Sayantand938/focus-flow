@@ -15,16 +15,15 @@ export default function HourRow({
   onToggleSession,
 }: HourRowProps) {
   return (
-    <div className="grid grid-cols-[1fr_auto_auto] md:grid-cols-3 items-center gap-2">
+    <div className="grid grid-cols-[1fr_auto] md:grid-cols-[1fr_auto] items-center gap-2">
+      {/* Hour label */}
       <span className="font-mono text-base sm:text-lg whitespace-nowrap">
         {formatHourSlot(hour)}
       </span>
 
-      <div className="flex justify-center">
+      {/* Badge + Switch grouped together */}
+      <div className="flex items-center gap-3">
         <HourBadge isChecked={isChecked} />
-      </div>
-
-      <div className="flex justify-end">
         <Switch
           checked={isChecked}
           onCheckedChange={(checked) => onToggleSession(hour, checked)}
