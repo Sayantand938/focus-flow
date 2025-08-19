@@ -11,15 +11,19 @@ import {
 type HourRowProps = {
   hour: number
   isChecked: boolean
+  tag?: string
   formatHourSlot: (hour: number) => string
   onToggleSession: (hour: number, checked: boolean) => void
+  onUpdateTag: (hour: number, tag: string) => void
 }
 
 export default function HourRow({
   hour,
   isChecked,
+  tag,
   formatHourSlot,
   onToggleSession,
+  onUpdateTag,
 }: HourRowProps) {
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 items-center gap-3 sm:gap-4">
@@ -30,7 +34,11 @@ export default function HourRow({
 
       {/* Column 2: Tag dropdown (hidden on mobile, centered on desktop) */}
       <div className="hidden sm:flex justify-center">
-        <Select>
+        <Select
+          value={tag || ""}
+          onValueChange={(value) => onUpdateTag(hour, value)}
+          disabled={!isChecked}
+        >
           <SelectTrigger className="w-[130px] lg:w-[150px]">
             <SelectValue placeholder="Tag" />
           </SelectTrigger>

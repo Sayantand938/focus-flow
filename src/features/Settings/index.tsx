@@ -15,7 +15,9 @@ import { collection, getDocs, writeBatch } from "firebase/firestore";
 import toast from "react-hot-toast";
 
 type ImportData = {
-  dailyLogs: Record<string, number[]>;
+  dailyLogs: Record<string, {
+    slots: Record<number, string>;
+  }>;
   todos: Todo[];
 };
 
@@ -24,17 +26,14 @@ function Settings() {
   const { todos, importTodos } = useTodoStore();
   const user = useAuthStore((state) => state.user);
   
-  // UI state for loading indicators is local to this component
   const [isResetting, setIsResetting] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [isOpeningFile, setIsOpeningFile] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   
-  // State for controlling dialog visibility
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   
-  // State to hold data from an imported file before confirmation
   const [pendingImportData, setPendingImportData] = useState<ImportData | null>(null);
   
   const handleResetData = async () => {
@@ -83,9 +82,9 @@ function Settings() {
 
         if (!filePath) throw new Error("Export cancelled by user.");
 
-        const dailyLogsForExport: Record<string, number[]> = {};
+        const dailyLogsForExport: ImportData['dailyLogs'] = {};
         dailyLogs.forEach(log => {
-            dailyLogsForExport[log.id] = [...log.completedSlots].sort((a, b) => a - b);
+            dailyLogsForExport[log.id] = { slots: log.slots || {} };
         });
         
         const dataToExport = {

@@ -1,7 +1,6 @@
 // src/features/FocusSheet/index.tsx
 import { useMemo } from 'react';
-// import { StudiedDays } from "@/shared/lib/types"; // <- REMOVED THIS LINE
-import { SHIFTS, slotToHour } from "@/shared/lib/utils";
+import { SHIFTS } from "@/shared/lib/utils";
 import { format } from "date-fns";
 import ShiftCard from "./components/ShiftCard";
 import { motion, Variants } from "framer-motion";
@@ -21,72 +20,48 @@ const formatHourSlot = (hour: number): string => {
 };
 
 export default function FocusSheet() {
-  const { dailyLogs, toggleSession } = useLogStore();
+  const { dailyLogs, toggleSession, updateSlotTag } = useLogStore();
 
-  const todaysCompletedHours = useMemo(() => {
+  const todaysSlots = useMemo(() => {
     const todayKey = format(new Date(), "yyyy-MM-dd");
     const todayData = dailyLogs.find(log => log.id === todayKey);
-    return new Set(todayData?.completedSlots.map(slotToHour).filter(h => h !== null) || []);
+    return todayData?.slots || {};
   }, [dailyLogs]);
 
-  // Super smooth spring-based animation variants
+  // Animation variants
   const containerVariants: Variants = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
-      transition: { 
-        staggerChildren: 0.08, 
-        delayChildren: 0.05 
-      },
+      transition: { staggerChildren: 0.08, delayChildren: 0.05 },
     },
   };
 
   const itemVariants: Variants = {
-    hidden: { 
-      y: 16, 
-      opacity: 0,
-      scale: 0.98
-    },
+    hidden: { y: 16, opacity: 0, scale: 0.98 },
     visible: {
       y: 0,
       opacity: 1,
       scale: 1,
-      transition: { 
-        type: "spring", 
-        stiffness: 120, 
-        damping: 18 
-      },
+      transition: { type: "spring", stiffness: 120, damping: 18 },
     },
   };
 
-  // Grid container with coordinated stagger
   const gridVariants: Variants = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
-      transition: {
-        staggerChildren: 0.06,
-        delayChildren: 0.1,
-      },
+      transition: { staggerChildren: 0.06, delayChildren: 0.1, },
     },
   };
 
-  // Grid item variants with enhanced spring animation
   const gridItemVariants: Variants = {
-    hidden: { 
-      y: 12, 
-      opacity: 0,
-      scale: 0.98
-    },
+    hidden: { y: 12, opacity: 0, scale: 0.98 },
     visible: {
       y: 0,
       opacity: 1,
       scale: 1,
-      transition: { 
-        type: "spring", 
-        stiffness: 140, 
-        damping: 20 
-      },
+      transition: { type: "spring", stiffness: 140, damping: 20 },
     },
   };
 
@@ -119,9 +94,10 @@ export default function FocusSheet() {
           >
             <ShiftCard
               shift={shift}
-              todaysCompletedHours={todaysCompletedHours}
+              todaysSlots={todaysSlots}
               formatHourSlot={formatHourSlot}
               onToggleSession={toggleSession}
+              onUpdateTag={updateSlotTag}
             />
           </motion.div>
         ))}

@@ -1,12 +1,16 @@
 // src/shared/lib/types.ts
 export interface DailyLog {
   id: string;
-  completedSlots: number[];
+  // A map of slot number to a tag name.
+  // The existence of a key implies the slot is completed.
+  slots: Record<number, string>;
 }
 
 export interface DailyStudyData {
   totalMinutes: number;
+  // This is derived from the keys of `slots` for convenience in components.
   completedSlots: number[];
+  slots: Record<number, string>;
   date: Date;
 }
 
@@ -26,7 +30,7 @@ export interface Todo {
   title: string;
   description?: string;
   createdAt: string;
-  dueDate?: string; // <-- ADDED
+  dueDate?: string;
   priority: TodoPriority;
   status: TodoStatus;
   isStarred: boolean;
