@@ -5,16 +5,18 @@ import { useIsMobile } from "@/shared/hooks/useIsMobile";
 import { format, subDays } from "date-fns";
 import {
   calculateShiftStats, getPast7DaysProgress, calculateStreaksAndGoals,
-  calculateOverallStats,
+  calculateOverallStats, calculateProgression,
 } from "@/shared/lib/utils";
 import { CustomHeatmap } from "@/shared/components/ui/custom-heatmap";
 import { ShiftReport } from "./components/ShiftReport";
 import { StreaksAndGoals } from "./components/StreaksAndGoals";
 import { OverallStats } from "./components/OverallStats";
+import { ProgressionStatus } from "./components/ProgressionStatus";
 import { WeeklyProgressChart } from "./components/WeeklyProgressChart";
 import { StudyTimeTrend } from "./components/StudyTimeTrend";
 import { useAuthStore } from "@/stores/authStore";
 import { useLogStore } from "@/stores/logStore";
+import { useProgressionStore } from "@/stores/progressionStore";
 import { StudiedDays, DailyLog } from "@/shared/lib/types";
 
 // Transformation function can be a local utility or imported
@@ -43,12 +45,14 @@ export function Dashboard() {
   const isMobile = useIsMobile();
   const user = useAuthStore((state) => state.user);
   const dailyLogs = useLogStore((state) => state.dailyLogs);
+  const totalXp = useProgressionStore((state) => state.totalXp);
 
   const studiedDays = useMemo(() => transformLogsToStudiedDays(dailyLogs), [dailyLogs]);
 
   const todayShiftStats = useMemo(() => calculateShiftStats(studiedDays, new Date()), [studiedDays]);
   const past7DaysProgress = useMemo(() => getPast7DaysProgress(studiedDays), [studiedDays]);
   const streaksAndGoals = useMemo(() => calculateStreaksAndGoals(studiedDays), [studiedDays]);
+  const progressionInfo = useMemo(() => calculateProgression(totalXp), [totalXp]);
 
   const overallStats: OverallStatsData = useMemo(
     () => calculateOverallStats(studiedDays), 
@@ -73,7 +77,6 @@ export function Dashboard() {
 
   const goalCompletionRate = overallStats.totalDays > 0 ? (streaksAndGoals.perfectDays / overallStats.totalDays) * 100 : 0;
 
-  // Super smooth spring-based animation variants (matching TodoList style)
   const containerVariants: Variants = {
     hidden: { opacity: 0 },
     visible: {
@@ -101,7 +104,6 @@ export function Dashboard() {
     },
   };
 
-  // Grid items with enhanced spring animation
   const gridItemVariants: Variants = {
     hidden: { 
       y: 12, 
@@ -120,7 +122,6 @@ export function Dashboard() {
     },
   };
 
-  // Grid container with coordinated stagger
   const gridVariants: Variants = {
     hidden: { opacity: 0 },
     visible: {
@@ -166,9 +167,12 @@ export function Dashboard() {
       </motion.div>
 
       <motion.div 
-        className="grid grid-cols-1 lg:grid-cols-2 gap-8"
+        className="grid grid-cols-1 lg:grid-cols-3 gap-8"
         variants={gridVariants}
       >
+        <motion.div variants={gridItemVariants}>
+          <ProgressionStatus progressionInfo={progressionInfo} />
+        </motion.div>
         <motion.div variants={gridItemVariants}>
           <StreaksAndGoals streaksAndGoals={streaksAndGoals} goalCompletionRate={goalCompletionRate} />
         </motion.div>

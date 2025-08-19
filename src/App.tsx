@@ -9,7 +9,6 @@ import Dashboard from "@/features/Dashboard";
 import FocusSheet from "@/features/FocusSheet";
 import TodoList from "@/features/Todo";
 import PomodoroTimer from "@/features/Timer";
-import Progression from "@/features/Progression";
 
 // Import shared components
 import SideMenu from "@/shared/components/layout/SideMenu";
@@ -18,7 +17,6 @@ import SideMenu from "@/shared/components/layout/SideMenu";
 import { useAppStore } from "@/stores/appStore";
 import { useAuthStore } from "@/stores/authStore";
 import { useLogStore } from "@/stores/logStore";
-// --- FIX: No longer importing useTodoStore here as it's not needed for loading state ---
 
 // Import shared utilities
 import { cn } from "@/shared/lib/utils";
@@ -28,7 +26,6 @@ function App() {
   const activePage = useAppStore((state) => state.activePage);
   const { user, isLoadingAuth, initAuthListener } = useAuthStore();
   const isLoadingLogs = useLogStore((state) => state.isLoadingLogs);
-  // --- FIX: Removed isLoadingTodos as it's no longer in the store ---
 
   // On initial application load, set up the Firebase authentication listener.
   useEffect(() => {
@@ -37,7 +34,6 @@ function App() {
   }, [initAuthListener]);
 
   const renderContent = () => {
-    // --- FIX: Simplified loading logic ---
     // The loading indicator now only depends on logs, as todos are loaded synchronously.
     // The todo-list page will never be blocked by log loading.
     const isAppLoading = isLoadingLogs && activePage !== 'todo-list';
@@ -53,7 +49,6 @@ function App() {
       case "focus-sheet":   return <FocusSheet />;
       case "dashboard":     return <Dashboard />;
       case "todo-list":     return <TodoList />;
-      case "progression":   return <Progression />;
       case "settings":      return <Settings />;
       default:              return <FocusSheet />;
     }
