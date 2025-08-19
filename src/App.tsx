@@ -270,7 +270,7 @@ function App() {
           onDelete={handleDeleteTask}
           onSetStatus={handleSetTaskStatus}
           onDeleteSelected={handleDeleteSelectedTasks}
-          onMarkSelectedDone={handleMarkSelectedTasksDone}
+          onMarkSelectedDone={handleMarkSelectedTasksDone} // Fixed prop name
         />;
       case "settings":
         return <Settings 

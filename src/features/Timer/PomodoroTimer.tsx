@@ -4,40 +4,42 @@ import { Card, CardContent } from "@/components/ui/card";
 import TimerDisplay from './components/TimerDisplay';
 import TimerControls from './components/TimerControls';
 
-const WORK_DURATION = 30 * 60; // 30 minutes
+const WORK_DURATION = 30 * 60; // 30 minutes in seconds
+
 const STORAGE_KEYS = {
-  TIME: 'pomodoro-time',
+  TIME_LEFT: 'pomodoro-timeLeft',
   IS_ACTIVE: 'pomodoro-isActive',
-  TIMESTAMP: 'pomodoro-timestamp'
+  LAST_PAUSE: 'pomodoro-lastPause',
 } as const;
 
+// Helper function to get the initial state from localStorage
 const getInitialState = () => {
-  const savedTime = localStorage.getItem(STORAGE_KEYS.TIME);
-  const savedTimestamp = localStorage.getItem(STORAGE_KEYS.TIMESTAMP);
   const savedIsActive = localStorage.getItem(STORAGE_KEYS.IS_ACTIVE);
+  const savedTimeLeft = localStorage.getItem(STORAGE_KEYS.TIME_LEFT);
+  const savedLastPause = localStorage.getItem(STORAGE_KEYS.LAST_PAUSE);
 
-  if (savedTime && savedTimestamp) {
-    const time = parseInt(savedTime, 10);
-    const timestamp = parseInt(savedTimestamp, 10);
-    const wasActive = savedIsActive === 'true';
+  const wasActive = savedIsActive === 'true';
+
+  if (wasActive && savedLastPause) {
+    // If the timer was active, calculate elapsed time
+    const lastPauseTime = parseInt(savedLastPause, 10);
+    const elapsedSeconds = Math.floor((Date.now() - lastPauseTime) / 1000);
+    const newTime = WORK_DURATION - elapsedSeconds;
     
-    if (wasActive) {
-      // Timer was running when page closed, calculate elapsed time
-      const elapsedSeconds = Math.floor((Date.now() - timestamp) / 1000);
-      const newTime = time - elapsedSeconds;
-      return {
-        timeLeft: newTime > 0 ? newTime : 0,
-        isActive: newTime > 0 // Auto-pause if time ran out
-      };
-    } else {
-      // Timer was paused, return saved time without elapsed calculation
-      return {
-        timeLeft: time > 0 ? time : WORK_DURATION,
-        isActive: false
-      };
-    }
+    return {
+      timeLeft: newTime > 0 ? newTime : 0,
+      isActive: newTime > 0 ? true : false // Resume only if time is left
+    };
+  } else if (!wasActive && savedTimeLeft) {
+    // If the timer was paused, load the saved time
+    const timeLeft = parseInt(savedTimeLeft, 10);
+    return {
+      timeLeft: timeLeft,
+      isActive: false
+    };
   }
-  
+
+  // If no saved state exists, return the default
   return {
     timeLeft: WORK_DURATION,
     isActive: false
@@ -51,22 +53,24 @@ export default function PomodoroTimer() {
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Save state to localStorage
-  const saveState = useCallback((time: number, active: boolean) => {
-    localStorage.setItem(STORAGE_KEYS.TIME, String(time));
+  const saveState = useCallback((active: boolean, time: number) => {
     localStorage.setItem(STORAGE_KEYS.IS_ACTIVE, String(active));
-    localStorage.setItem(STORAGE_KEYS.TIMESTAMP, String(Date.now()));
+    if (active) {
+      localStorage.setItem(STORAGE_KEYS.LAST_PAUSE, String(Date.now() - (WORK_DURATION - time) * 1000));
+    } else {
+      localStorage.setItem(STORAGE_KEYS.TIME_LEFT, String(time));
+    }
   }, []);
 
   // Clear localStorage
   const clearState = useCallback(() => {
-    localStorage.removeItem(STORAGE_KEYS.TIME);
+    localStorage.removeItem(STORAGE_KEYS.TIME_LEFT);
     localStorage.removeItem(STORAGE_KEYS.IS_ACTIVE);
-    localStorage.removeItem(STORAGE_KEYS.TIMESTAMP);
+    localStorage.removeItem(STORAGE_KEYS.LAST_PAUSE);
   }, []);
 
   // Main timer effect
   useEffect(() => {
-    // Clear any existing interval
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
@@ -93,15 +97,10 @@ export default function PomodoroTimer() {
     };
   }, [isTimerActive, timeLeft]);
 
-  // Save state whenever it changes
-  useEffect(() => {
-    saveState(timeLeft, isTimerActive);
-  }, [timeLeft, isTimerActive, saveState]);
-
-  // Handle page unload
+  // Handle page unload to save state
   useEffect(() => {
     const handleBeforeUnload = () => {
-      saveState(timeLeft, isTimerActive);
+      saveState(isTimerActive, timeLeft);
     };
 
     window.addEventListener('beforeunload', handleBeforeUnload);
@@ -109,26 +108,27 @@ export default function PomodoroTimer() {
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, [timeLeft, isTimerActive, saveState]);
+  }, [isTimerActive, timeLeft, saveState]);
 
   // Timer completed effect
   useEffect(() => {
     if (timeLeft === 0 && isTimerActive) {
       setIsTimerActive(false);
-      // Optional: Add notification or sound here
+      clearState();
       console.log('Pomodoro session completed!');
     }
-  }, [timeLeft, isTimerActive]);
+  }, [timeLeft, isTimerActive, clearState]);
 
   const handlePlayPause = useCallback(() => {
-    if (timeLeft === 0) {
-      // If timer is at 0, reset it before starting
-      setTimeLeft(WORK_DURATION);
-      setIsTimerActive(true);
+    setIsTimerActive(prev => !prev);
+    if (!isTimerActive) {
+      // Starting the timer
+      saveState(true, timeLeft);
     } else {
-      setIsTimerActive(prev => !prev);
+      // Pausing the timer
+      saveState(false, timeLeft);
     }
-  }, [timeLeft]);
+  }, [isTimerActive, timeLeft, saveState]);
 
   const handleReset = useCallback(() => {
     if (intervalRef.current) {
@@ -148,7 +148,6 @@ export default function PomodoroTimer() {
           Focus for a 30-minute session.
         </p>
       </header>
-
       <Card className="w-full max-w-sm pt-6 pb-5">
         <CardContent className="p-0 flex flex-col items-center gap-6">
           <TimerDisplay timeLeft={timeLeft} duration={WORK_DURATION} />
