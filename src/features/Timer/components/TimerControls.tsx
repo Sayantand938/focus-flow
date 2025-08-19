@@ -1,6 +1,6 @@
 // src/features/Timer/components/TimerControls.tsx
 import React from 'react';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/shared/components/ui/button';
 import { Play, Pause, RefreshCw } from 'lucide-react';
 
 interface TimerControlsProps {

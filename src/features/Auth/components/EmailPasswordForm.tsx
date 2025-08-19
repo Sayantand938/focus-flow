@@ -1,7 +1,7 @@
 import { useForm } from "react-hook-form";
-import { Form, FormField, FormItem, FormLabel, FormMessage, FormControl } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui//button";
+import { Form, FormField, FormItem, FormLabel, FormMessage, FormControl } from "@/shared/components/ui/form";
+import { Input } from "@/shared/components/ui/input";
+import { Button } from "@/shared/components/ui/button";
 import PasswordInput from "./PasswordInput";
 import { Mail } from "lucide-react";
 

@@ -1,8 +1,8 @@
 import {
   Card,
   CardContent,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+} from "@/shared/components/ui/card";
+import { Button } from "@/shared/components/ui/button";
 import { Loader2, Upload, Download } from "lucide-react";
 import {
   AlertDialog,
@@ -13,7 +13,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+} from "@/shared/components/ui/alert-dialog";
 
 interface DataManagementSettingsProps {
     isExporting: boolean;

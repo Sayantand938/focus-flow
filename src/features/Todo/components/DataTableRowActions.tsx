@@ -1,14 +1,14 @@
 // src\pages\Todo\components\DataTableRowActions.tsx
 import { Row } from "@tanstack/react-table";
 import { MoreHorizontal, Trash2, Edit, CheckCircle2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/shared/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "@/shared/components/ui/dropdown-menu";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,8 +19,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { Todo, TodoStatus } from "@/utils/types";
+} from "@/shared/components/ui/alert-dialog";
+import { Todo, TodoStatus } from "@/shared/lib/types";
 
 interface DataTableRowActionsProps {
   row: Row<Todo>;

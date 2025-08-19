@@ -1,17 +1,20 @@
-// D:/Coding/tauri-projects/focus-flow/src/features/Dashboard/components/ShiftReport.tsx
+// src/features/Dashboard/components/ShiftReport.tsx
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { SHIFTS, SHIFT_GOAL_MINUTES } from "@/utils/utils";
+} from "@/shared/components/ui/card";
+import { Progress } from "@/shared/components/ui/progress";
+import { SHIFTS, SHIFT_GOAL_MINUTES } from "@/shared/lib/utils";
 import { motion } from "framer-motion";
 
 interface ShiftReportProps {
-  todayShiftStats: { [key: number]: number };
+  // --- FIX ---
+  // Correctly typed as a number array, which is what calculateShiftStats returns.
+  todayShiftStats: number[];
+  // --- END FIX ---
 }
 
 export function ShiftReport({ todayShiftStats }: ShiftReportProps) {
@@ -38,7 +41,7 @@ export function ShiftReport({ todayShiftStats }: ShiftReportProps) {
         animate="visible"
       >
         {SHIFTS.map((shift, index) => {
-          const durationInMinutes = todayShiftStats[index];
+          const durationInMinutes = todayShiftStats[index] || 0; // Added fallback for safety
           const progress = (durationInMinutes / SHIFT_GOAL_MINUTES) * 100;
           return (
             <motion.div key={shift.name} variants={itemVariants}>

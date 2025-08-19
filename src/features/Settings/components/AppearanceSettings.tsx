@@ -1,16 +1,16 @@
 import {
   Card,
   CardContent,
-} from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
+} from "@/shared/components/ui/card";
+import { Label } from "@/shared/components/ui/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { useTheme } from "@/context/ThemeProvider";
+} from "@/shared/components/ui/select";
+import { useTheme } from "@/shared/context/ThemeProvider";
 import { Palette } from "lucide-react";
 
 type Theme = "dark" | "light" | "system";

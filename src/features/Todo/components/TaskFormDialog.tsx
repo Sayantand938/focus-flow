@@ -6,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { motion, AnimatePresence } from "framer-motion";
 import { ClipboardList, Tag as TagIcon, Text as TextIcon } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
+import { Button } from "@/shared/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -15,7 +15,7 @@ import {
   DialogFooter,
   DialogDescription,
   DialogClose,
-} from "@/components/ui/dialog";
+} from "@/shared/components/ui/dialog";
 import {
   Form,
   FormControl,
@@ -23,12 +23,12 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Separator } from "@/components/ui/separator";
+} from "@/shared/components/ui/form";
+import { Input } from "@/shared/components/ui/input";
+import { Separator } from "@/shared/components/ui/separator";
 
 import { priorities, statuses } from "./Columns";
-import { Todo } from "@/utils/types";
+import { Todo } from "@/shared/lib/types";
 
 const taskFormSchema = z.object({
   description: z.string().min(3, "Description must be at least 3 characters."),

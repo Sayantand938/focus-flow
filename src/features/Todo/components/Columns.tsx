@@ -1,10 +1,10 @@
 // src/pages/Todo/components/Columns.tsx
 import { ColumnDef } from "@tanstack/react-table";
 import { format } from "date-fns";
-import { Todo, TodoStatus } from "@/utils/types";
-import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Button } from "@/components/ui/button";
+import { Todo, TodoStatus } from "@/shared/lib/types";
+import { Badge } from "@/shared/components/ui/badge";
+import { Checkbox } from "@/shared/components/ui/checkbox";
+import { Button } from "@/shared/components/ui/button";
 import { ArrowDown, ArrowRight, ArrowUp, Circle, CheckCircle2, XCircle, ArrowUpDown } from "lucide-react";
 import { DataTableRowActions } from "./DataTableRowActions";
 
@@ -17,7 +17,7 @@ export const statuses = [
 export const priorities = [
   { label: "Low", value: "low", icon: ArrowDown },
   { label: "Medium", value: "medium", icon: ArrowRight },
-  { label: "High", value: "high", icon: ArrowUp },
+{ label: "High", value: "high", icon: ArrowUp },
 ];
 
 export const getColumns = (

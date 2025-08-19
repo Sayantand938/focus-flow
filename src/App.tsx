@@ -1,253 +1,43 @@
-// D:/Coding/tauri-projects/focus-flow/src/App.tsx
-import { useState, useEffect, useMemo } from "react";
-import { auth, db } from "@/services/firebase";
-import { onAuthStateChanged, User, signOut } from "firebase/auth";
-import {
-  doc,
-  setDoc,
-  getDoc,
-  collection,
-  query,
-  getDocs,
-  writeBatch,
-  arrayUnion,
-  updateDoc,
-  arrayRemove,
-  serverTimestamp,
-} from "firebase/firestore";
-import { format } from "date-fns";
+// src/App.tsx
+import { useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
-import Settings from "@/features/Settings/Settings";
-import SideMenu from "@/components/layout/SideMenu";
-import Auth from "@/features/Auth/Auth";
-import Dashboard from "@/features/Dashboard/Dashboard";
-import { Todo, DailyLog, StudiedDays } from "@/utils/types";
-import FocusSheet from "@/features/FocusSheet/FocusSheet";
-import { cn, hourToSlot } from "@/utils/utils";
-import TodoList from "@/features/Todo/TodoList";
-import { useTodos } from "@/hooks/useTodos";
-import PomodoroTimer from "@/features/Timer/PomodoroTimer";
+// Import feature components (entry points)
+import Settings from "@/features/Settings";
+import Auth from "@/features/Auth";
+import Dashboard from "@/features/Dashboard";
+import FocusSheet from "@/features/FocusSheet";
+import TodoList from "@/features/Todo";
+import PomodoroTimer from "@/features/Timer"; // This import now works
 
-/**
- * Creates a user profile document in Firestore if one doesn't already exist.
- */
-const createUserProfileDocument = async (user: User) => {
-  const userDocRef = doc(db, "users", user.uid);
-  const userDocSnap = await getDoc(userDocRef);
+// Import shared components
+import SideMenu from "@/shared/components/layout/SideMenu";
 
-  if (!userDocSnap.exists()) {
-    const { displayName, email, photoURL } = user;
-    try {
-      await setDoc(userDocRef, {
-        displayName,
-        email,
-        photoURL,
-        createdAt: serverTimestamp(),
-        settings: { theme: 'dark' }
-      });
-    } catch (error) {
-      console.error("Error creating user profile:", error);
-    }
-  }
-};
+// Import Zustand stores
+import { useAppStore } from "@/stores/appStore";
+import { useAuthStore } from "@/stores/authStore";
+import { useLogStore } from "@/stores/logStore";
+import { useTodoStore } from "@/stores/todoStore";
 
-/**
- * Transforms the raw dailyLog data into the more robust StudiedDays object.
- */
-function transformLogsToStudiedDays(dailyLogs: DailyLog[]): StudiedDays {
-  const studiedDays: StudiedDays = {};
-
-  for (const log of dailyLogs) {
-    const parts = log.id.split('-').map(Number);
-    const date = new Date(parts[0], parts[1] - 1, parts[2]);
-    
-    studiedDays[log.id] = {
-      date: date,
-      completedSlots: log.completedSlots,
-      totalMinutes: log.completedSlots.length * 30, // Each slot is 30 minutes
-    };
-  }
-  return studiedDays;
-}
+// Import shared utilities
+import { cn } from "@/shared/lib/utils";
 
 function App() {
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoadingAuth, setIsLoadingAuth] = useState(true);
-  const [isLoadingData, setIsLoadingData] = useState(true);
-  const [activePage, setActivePage] = useState("focus-sheet");
-  const [dailyLogs, setDailyLogs] = useState<DailyLog[]>([]);
+  // Subscribe to state and actions from our global stores
+  const activePage = useAppStore((state) => state.activePage);
+  const { user, isLoadingAuth, initAuthListener } = useAuthStore();
+  const isLoadingLogs = useLogStore((state) => state.isLoadingLogs);
+  const isLoadingTodos = useTodoStore((state) => state.isLoadingTodos);
 
-  const {
-    todos,
-    setTodos,
-    isLoadingTodos,
-    handleAddTask,
-    handleUpdateTask,
-    handleDeleteTask,
-    handleSetTaskStatus,
-    handleDeleteSelectedTasks,
-    handleMarkSelectedTasksDone,
-  } = useTodos(user);
-
-  // Memoized transformation for all child components
-  const studiedDays = useMemo(() => transformLogsToStudiedDays(dailyLogs), [dailyLogs]);
-
+  // On initial application load, set up the Firebase authentication listener.
   useEffect(() => {
-    const fetchAndSetDailyLogs = async (uid: string) => {
-      setIsLoadingData(true);
-      try {
-        const logsCollectionRef = collection(db, "users", uid, "dailyLogs");
-        const q = query(logsCollectionRef);
-        const querySnapshot = await getDocs(q);
-
-        const fetchedLogs = querySnapshot.docs.map((doc) => ({
-          id: doc.id,
-          completedSlots: doc.data().completedSlots || [],
-        }));
-
-        setDailyLogs(fetchedLogs);
-      } catch (error) {
-        console.error("Failed to load dailyLogs from Firestore:", error);
-        setDailyLogs([]);
-      } finally {
-        setIsLoadingData(false);
-      }
-    };
-
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      if (currentUser) {
-        await createUserProfileDocument(currentUser);
-        setUser(currentUser);
-        await fetchAndSetDailyLogs(currentUser.uid);
-      } else {
-        setUser(null);
-        setDailyLogs([]);
-        setIsLoadingData(false);
-      }
-      setIsLoadingAuth(false);
-    });
-
+    const unsubscribe = initAuthListener();
     return () => unsubscribe();
-  }, []);
-
-  const handleSignOut = async () => {
-    try {
-      await signOut(auth);
-    } catch (error) {
-      console.error("Error signing out:", error);
-    }
-  };
-
-  const handleToggleSession = async (hour: number, isAdding: boolean) => {
-    if (!user) return;
-  
-    const slot = hourToSlot(hour);
-    if (slot === null) return;
-  
-    const docId = format(new Date(), "yyyy-MM-dd");
-    const logDocRef = doc(db, "users", user.uid, "dailyLogs", docId);
-  
-    setDailyLogs(currentLogs => {
-      const newLogs = [...currentLogs];
-      const todayLogIndex = newLogs.findIndex(log => log.id === docId);
-
-      if (isAdding) {
-        if (todayLogIndex > -1) {
-          if (!newLogs[todayLogIndex].completedSlots.includes(slot)) {
-            newLogs[todayLogIndex].completedSlots.push(slot);
-          }
-        } else {
-          newLogs.push({ id: docId, completedSlots: [slot] });
-        }
-      } else {
-        if (todayLogIndex > -1) {
-          newLogs[todayLogIndex].completedSlots = newLogs[todayLogIndex].completedSlots.filter((s: number) => s !== slot);
-        }
-      }
-      return newLogs;
-    });
-  
-    try {
-      if (isAdding) {
-        await setDoc(logDocRef, { completedSlots: arrayUnion(slot) }, { merge: true });
-      } else {
-        await updateDoc(logDocRef, { completedSlots: arrayRemove(slot) });
-      }
-    } catch (error) {
-      console.error("Failed to update Firestore:", error);
-    }
-  };
-
-  const handleResetData = async (): Promise<void> => {
-    if (!user) throw new Error('No user logged in');
-    
-    // Hold onto the original data for rollback on failure
-    const originalDailyLogs = [...dailyLogs];
-    const originalTodos = [...todos];
-    
-    // Optimistically clear the UI
-    setDailyLogs([]);
-    setTodos([]);
-
-    try {
-      const batch = writeBatch(db);
-      const logsCollectionRef = collection(db, "users", user.uid, "dailyLogs");
-      const logsSnapshot = await getDocs(logsCollectionRef);
-      logsSnapshot.docs.forEach(doc => batch.delete(doc.ref));
-
-      const todosCollectionRef = collection(db, "users", user.uid, "todos");
-      const todosSnapshot = await getDocs(todosCollectionRef);
-      todosSnapshot.docs.forEach(doc => batch.delete(doc.ref));
-
-      await batch.commit();
-    } catch (error) {
-      console.error("Error resetting data:", error);
-      // Rollback the UI if the Firestore operation fails
-      setDailyLogs(originalDailyLogs);
-      setTodos(originalTodos);
-      throw error;
-    }
-  };
-
-  const handleImportData = async (data: { dailyLogs: Record<string, number[]>, todos: Todo[] }): Promise<void> => {
-    if (!user) throw new Error('No user logged in');
-  
-    const newDailyLogs = Object.entries(data.dailyLogs).map(([id, completedSlots]) => ({ id, completedSlots }));
-    setDailyLogs(newDailyLogs);
-    setTodos(data.todos);
-  
-    try {
-      const batch = writeBatch(db);
-  
-      const logsCollectionRef = collection(db, "users", user.uid, "dailyLogs");
-      const logsSnapshot = await getDocs(logsCollectionRef);
-      logsSnapshot.docs.forEach(doc => batch.delete(doc.ref));
-  
-      const todosCollectionRef = collection(db, "users", user.uid, "todos");
-      const todosSnapshot = await getDocs(todosCollectionRef);
-      todosSnapshot.docs.forEach(doc => batch.delete(doc.ref));
-  
-      data.todos.forEach(todo => {
-        const newDocRef = doc(collection(db, "users", user.uid, "todos"));
-        const { id, ...todoData } = todo;
-        batch.set(newDocRef, { ...todoData, createdAt: new Date(todo.createdAt) });
-      });
-  
-      for (const [docId, slots] of Object.entries(data.dailyLogs)) {
-        const logDocRef = doc(db, "users", user.uid, "dailyLogs", docId);
-        batch.set(logDocRef, { completedSlots: slots });
-      }
-  
-      await batch.commit();
-    } catch (error) {
-      console.error("Error during data import:", error);
-      throw error;
-    }
-  };
+  }, [initAuthListener]);
 
   const renderContent = () => {
-    const isAppLoading = (isLoadingData && activePage !== 'todo-list') || (isLoadingTodos && activePage === 'todo-list');
+    const isAppLoading = (isLoadingLogs && activePage !== 'todo-list') || 
+                         (isLoadingTodos && activePage === 'todo-list');
     
     if (isAppLoading) {
       return <div className="text-center text-muted-foreground"><p>Loading data...</p></div>;
@@ -256,36 +46,21 @@ function App() {
     if (!user) return null;
 
     switch (activePage) {
-      case "timer":
-        return <PomodoroTimer />;
-      case "focus-sheet":
-        return <FocusSheet studiedDays={studiedDays} onToggleSession={handleToggleSession} />;
-      case "dashboard":
-        return <Dashboard user={user} studiedDays={studiedDays} />;
-      case "todo-list":
-        return <TodoList 
-          todos={todos}
-          onAddTask={handleAddTask}
-          onUpdateTask={handleUpdateTask}
-          onDelete={handleDeleteTask}
-          onSetStatus={handleSetTaskStatus}
-          onDeleteSelected={handleDeleteSelectedTasks}
-          onMarkSelectedDone={handleMarkSelectedTasksDone} // Fixed prop name
-        />;
-      case "settings":
-        return <Settings 
-                  onResetData={handleResetData} 
-                  onImportData={handleImportData}
-                  dailyLogs={dailyLogs}
-                  todos={todos}
-                />;
-      default:
-        return <FocusSheet studiedDays={studiedDays} onToggleSession={handleToggleSession} />;
+      case "timer":         return <PomodoroTimer />;
+      case "focus-sheet":   return <FocusSheet />;
+      case "dashboard":     return <Dashboard />;
+      case "todo-list":     return <TodoList />;
+      case "settings":      return <Settings />;
+      default:              return <FocusSheet />;
     }
   };
   
   if (isLoadingAuth) {
-    return <div className="flex items-center justify-center h-screen bg-background"><p className="text-foreground">Authenticating...</p></div>;
+    return (
+      <div className="flex items-center justify-center h-screen bg-background">
+        <p className="text-foreground">Authenticating...</p>
+      </div>
+    );
   }
 
   if (!user) {
@@ -294,13 +69,13 @@ function App() {
 
   return (
     <div className="h-screen flex bg-background text-foreground">
-      <SideMenu
-        activePage={activePage}
-        setActivePage={setActivePage}
-        user={user}
-        onSignOut={handleSignOut}
-      />
-      <main className={cn("flex-1 flex flex-col items-center overflow-y-auto min-h-screen", "p-4 sm:p-6 lg:p-8", "pt-28 md:pt-8", "pb-12 sm:pb-16")}>
+      <SideMenu />
+      <main className={cn(
+        "flex-1 flex flex-col items-center overflow-y-auto min-h-screen", 
+        "p-4 sm:p-6 lg:p-8", 
+        "pt-28 md:pt-8", 
+        "pb-12 sm:pb-16"
+      )}>
         <AnimatePresence mode="wait">
           <motion.div
             key={activePage}

@@ -1,8 +1,8 @@
 // src\pages\Todo\components\DataTableToolbar.tsx
 import { Table } from "@tanstack/react-table";
 import { motion, AnimatePresence } from "framer-motion";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { Input } from "@/shared/components/ui/input";
+import { Button } from "@/shared/components/ui/button";
 import { PlusCircle, Trash2, CheckCircle2, Filter } from "lucide-react";
 import {
   DropdownMenu,
@@ -14,9 +14,9 @@ import {
   DropdownMenuSub,
   DropdownMenuSubTrigger,
   DropdownMenuSubContent
-} from "@/components/ui/dropdown-menu";
+} from "@/shared/components/ui/dropdown-menu";
 import { statuses, priorities } from "./Columns";
-import { cn } from "@/utils/utils";
+import { cn } from "@/shared/lib/utils";
 
 interface DataTableToolbarProps<TData> {
   table: Table<TData>;
