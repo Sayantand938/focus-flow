@@ -17,6 +17,7 @@ import SideMenu from "@/shared/components/layout/SideMenu";
 import { useAppStore } from "@/stores/appStore";
 import { useAuthStore } from "@/stores/authStore";
 import { useLogStore } from "@/stores/logStore";
+import { useTodoStore } from "@/stores/todoStore";
 
 // Import shared utilities
 import { cn } from "@/shared/lib/utils";
@@ -26,6 +27,7 @@ function App() {
   const activePage = useAppStore((state) => state.activePage);
   const { user, isLoadingAuth, initAuthListener } = useAuthStore();
   const isLoadingLogs = useLogStore((state) => state.isLoadingLogs);
+  const isLoadingTodos = useTodoStore((state) => state.isLoadingTodos);
 
   // On initial application load, set up the Firebase authentication listener.
   useEffect(() => {
@@ -34,11 +36,11 @@ function App() {
   }, [initAuthListener]);
 
   const renderContent = () => {
-    // The loading indicator now only depends on logs, as todos are loaded synchronously.
-    // The todo-list page will never be blocked by log loading.
-    const isAppLoading = isLoadingLogs && activePage !== 'todo-list';
+    // The main app is loading if logs or todos are still being fetched for the first time.
+    const isAppLoading = isLoadingLogs || isLoadingTodos;
     
-    if (isAppLoading) {
+    // The TodoList has its own internal loading spinner, so we don't block the whole UI for it.
+    if (isAppLoading && activePage !== 'todo-list') {
       return <div className="text-center text-muted-foreground"><p>Loading data...</p></div>;
     }
 

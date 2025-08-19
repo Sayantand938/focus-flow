@@ -40,10 +40,12 @@ export const useAuthStore = create<AuthState>((set) => ({
       if (currentUser) {
         await createUserProfileDocument(currentUser);
         set({ user: currentUser });
+        // Trigger fetches for all data stores
         useLogStore.getState().fetchLogs(currentUser.uid);
-        // No longer fetching todos here
+        useTodoStore.getState().fetchTodos(currentUser.uid);
       } else {
         set({ user: null });
+        // Reset all data stores on logout
         useLogStore.getState().resetLogs();
         useTodoStore.getState().resetTodos();
       }

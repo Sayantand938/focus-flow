@@ -28,7 +28,9 @@ const itemVariants: Variants = {
 };
 
 function TodoList() {
-  const { todos, toggleStar } = useTodoStore();
+  // Get everything directly from the store
+  const { todos, toggleStar, isLoadingTodos } = useTodoStore();
+  
   const [activeFilter, setActiveFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedTask, setSelectedTask] = useState<Todo | null>(null);
@@ -63,6 +65,14 @@ function TodoList() {
     setEditingTask(null);
     setIsNewTaskSheetOpen(true);
   };
+
+  if (isLoadingTodos) {
+    return (
+        <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground p-4">
+            <p className="text-lg font-medium">Loading your tasks...</p>
+        </div>
+    );
+  }
 
   return (
     <motion.div
